@@ -1,4 +1,6 @@
 from app import db
+import os
+os.remove('lunch.db')
 db.create_all()
 from app import User, Restaurant, Dish, DishChoice
 
@@ -14,9 +16,11 @@ for x in [michael, pavol, leon, oishi, biofrische, fladerei]:
     db.session.add(x)
 db.session.commit()
 
-db.session.add(Dish(name='Chicken Korma', restaurant_id=biofrische.id, user_id=michael.id))
-db.session.add(Dish(name='Bento Crispy Chicken (mit Minifrühlingsrollen)', restaurant_id=oishi.id, user_id=michael.id))
-db.session.add(Dish(name='Red Curry Tofu', restaurant_id=oishi.id, user_id=pavol.id))
-db.session.add(Dish(name='Red Curry Chicken', restaurant_id=oishi.id, user_id=leon.id))
+for d in ['Chicken Korma', 'Samosas']:
+    db.session.add(Dish(name=d, restaurant_id=biofrische.id))
+for d in ['Red Curry Tofu', 'Red Curry Chicken', 'Bento Bulgogi']:
+    db.session.add(Dish(name=d, restaurant_id=oishi.id))
 db.session.commit()
+
+print(db.session.query(User).filter_by(first_name='Michael').first())
 

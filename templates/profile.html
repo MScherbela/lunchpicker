@@ -6,10 +6,17 @@
         {% for restaurant in restaurants %}
             <div class="row mt-3">
                 <div class="col">
-                    <h4>{{ restaurant[0] }}</h4>
+                    <h4>{{ restaurant['name'] }}</h4>
                     <ul class="list-group">
-                        {% for dish in restaurant[1] %}
-                            <li class="list-group-item">{{ dish }}</li>
+                        {% for dish in restaurant['dishes'] %}
+                            {% if dish[0] %}
+                                <a href="#" class="list-group-item list-group-item-action list-group-item-success">
+                            {% else %}
+                                <a href="#" class="list-group-item list-group-item-action list-group-item-danger">
+                            {% endif %}
+                        {{ dish[1] }}
+                        {% if dish[2] %}<b> (veg)</b>{% endif %}
+                        </a>
                         {% endfor %}
                     </ul>
                 </div>
