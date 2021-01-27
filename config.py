@@ -1,2 +1,2 @@
-SQLALCHEMY_DATABASE_URI = 'sqlite:///lunch.db'
+SQLALCHEMY_DATABASE_URI = 'sqlite:////data/lunch.db'
 FLASK_ADMIN_SWATCH = 'cerulean'

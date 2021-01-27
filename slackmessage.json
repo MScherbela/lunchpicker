@@ -1,0 +1,48 @@
+ {
+	"blocks": [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "We're getting lunch from Oishi today, your default choice is *Red Tofu Curry*\nDoes that work for you?"
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "actions",
+			"elements": [
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Yes",
+						"emoji": true
+					},
+					"style": "primary",
+					"value": "yes"
+				},
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "No, don't order for me",
+						"emoji": true
+					},
+					"style": "danger",
+					"value": "no"
+				},
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "I want something else",
+						"emoji": true
+					},
+					"value": "other"
+				}
+			]
+		}
+	]
+}

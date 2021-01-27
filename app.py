@@ -2,6 +2,7 @@ import flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
+import slack
 
 app = flask.Flask(__name__)
 app.config.from_pyfile('config.py')
@@ -66,30 +67,24 @@ class RestaurantView(ModelView):
     column_hide_backrefs = False
     column_list = ('name', 'url', 'description', 'rating', 'dishes')
 
-admin.add_view(UserView(User, db.session))
-admin.add_view(RestaurantView(Restaurant, db.session))
-admin.add_view(DishView(Dish, db.session))
-admin.add_view(ModelView(DishChoice, db.session))
+# admin.add_view(UserView(User, db.session))
+# admin.add_view(RestaurantView(Restaurant, db.session))
+# admin.add_view(DishView(Dish, db.session))
+# admin.add_view(ModelView(DishChoice, db.session))
 
-@app.route('/')
-def hello_world():
-    return 'Hello World!'
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    if flask.request.method == 'POST':
+        r = slack.sendLunchOptionsMessage(app.config['SLACK_BOT_TOKEN'])
+        return r.text
+    else:
+        return flask.render_template('index.html')
 
-@app.route('/profile/<user_id>')
-def profile(user_id):
-    restaurants = Restaurant.query.all()
-    data = []
-    user = User.query.get(user_id)
-    liked_dishes = set(user.dishes)
-    for r in restaurants:
-        restaurant_data = dict(name=r.name, dishes=[])
-        dishes = Dish.query.filter_by(restaurant_id=r.id).all()
-        liked = [d in liked_dishes for d in dishes]
-        for d, l in zip(dishes, liked):
-            restaurant_data['dishes'].append((l, d.name, d.vegetarian))
-        restaurant_data['dishes'] = sorted(restaurant_data['dishes'], reverse=True)
-        data.append(restaurant_data)
-    return flask.render_template('profile.html', restaurants=data)
+@app.route('/api', methods=['POST'])
+def api():
+    print(flask.request)
+    print(flask.request.data)
+    return ""
 
 if __name__ == '__main__':
     app.run(debug=True)
