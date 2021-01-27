@@ -1,10 +1,50 @@
- {
+{
 	"blocks": [
 		{
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": "We're getting lunch from Oishi today, your default choice is *Red Tofu Curry*\nDoes that work for you?"
+				"text": "Hello NAME_PLACEHOLDER,\nWe're getting lunch from *RESTAURANT_PLACEHOLDER* today.\nI've preselected for you, but feel free to change."
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Your choice:"
+			},
+			"accessory": {
+				"type": "static_select",
+				"placeholder": {
+					"type": "plain_text",
+					"text": "Proposed dish:",
+					"emoji": true
+				},
+				"options": [
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Option 1"
+						},
+						"value": "id0"
+					},
+					{
+						"text": {
+							"type": "plain_text",
+							"text": "Option 2"
+						},
+						"value": "id1"
+					}
+				],
+				"initial_option": {
+					"text": {
+						"type": "plain_text",
+						"text": "Option 1",
+						"emoji": true
+					},
+					"value": "id0"
+				},
+				"action_id": "static_select-action"
 			}
 		},
 		{
@@ -17,8 +57,7 @@
 					"type": "button",
 					"text": {
 						"type": "plain_text",
-						"text": "Yes",
-						"emoji": true
+						"text": "Order"
 					},
 					"style": "primary",
 					"value": "yes"
@@ -27,8 +66,7 @@
 					"type": "button",
 					"text": {
 						"type": "plain_text",
-						"text": "No, don't order for me",
-						"emoji": true
+						"text": "Don't order for me"
 					},
 					"style": "danger",
 					"value": "no"
@@ -37,10 +75,10 @@
 					"type": "button",
 					"text": {
 						"type": "plain_text",
-						"text": "I want something else",
-						"emoji": true
+						"text": "I want something else"
 					},
-					"value": "other"
+					"value": "other",
+					"url": "https://lunchbot.scherbela.com"
 				}
 			]
 		}
