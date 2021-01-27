@@ -38,6 +38,18 @@ def buildLunchMessage(name, user_id, restaurant, options):
     msg['blocks'][3]['elements'][2]['url'] = f'https://lunchbot.scherbela.com/addDish/{user_id}'
     return msg
 
+def getSlackRequestButtonValue(payload):
+    if payload['type'] != "block_actions":
+        return None
+    if 'actions' not in payload:
+        return None
+    for a in payload['actions']:
+        if a['type'] == 'button':
+            return a['value']
+    else:
+        return None
+
+
 if __name__ == '__main__':
     pass
 

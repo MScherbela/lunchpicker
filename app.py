@@ -73,6 +73,9 @@ class RestaurantView(ModelView):
 # admin.add_view(DishView(Dish, db.session))
 # admin.add_view(ModelView(DishChoice, db.session))
 
+def is_valid_slack_request(payload):
+    return payload['token'] == app.config['SLACK_REQUEST_TOKEN']
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if flask.request.method == 'POST':
@@ -84,9 +87,17 @@ def index():
 @app.route('/api', methods=['POST'])
 def api():
     payload = json.loads(flask.request.values['payload'])
+    if not is_valid_slack_request(payload):
+        return 401
+    button_value = slack.getSlackRequestButtonValue(payload)
+    if button_value is None:
+        print("Not a button request")
+    else:
+        print("Button: "+button_value)
+
     with open('/data/requests.txt', 'w') as f:
        f.write(json.dumps(payload, indent=4))
     return ""
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=80)
