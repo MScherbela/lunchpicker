@@ -4,6 +4,9 @@ from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 import slack
 import json
+import logging
+
+logger = logging.basicConfig('/data/lunchbot.log')
 
 app = flask.Flask(__name__)
 app.config.from_pyfile('config.py')
@@ -91,9 +94,9 @@ def api():
         return 401
     button_value = slack.getSlackRequestButtonValue(payload)
     if button_value is None:
-        print("Not a button request")
+        logger.info("Not a button request")
     else:
-        print("Button: "+button_value)
+        logger.info("Button: "+button_value)
 
     with open('/data/requests.txt', 'w') as f:
        f.write(json.dumps(payload, indent=4))
