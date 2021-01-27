@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 import slack
+import json
 
 app = flask.Flask(__name__)
 app.config.from_pyfile('config.py')
@@ -82,8 +83,9 @@ def index():
 
 @app.route('/api', methods=['POST'])
 def api():
-    print(flask.request)
-    print(flask.request.data)
+    payload = json.loads(flask.request.values['payload'])
+    with open('/data/requests.txt', 'w') as f:
+       f.write(json.dumps(payload, indent=4))
     return ""
 
 if __name__ == '__main__':

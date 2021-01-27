@@ -1,7 +1,7 @@
 FROM python:3.8
 WORKDIR /workdir
-RUN apt-get update
-RUN apt-get install vim less
+RUN apt-get -y update && apt-get -y upgrade
+RUN apt-get -y install vim less
 
 # set-up the working dir (incl. the code) and install requirements
 COPY requirements.txt .
