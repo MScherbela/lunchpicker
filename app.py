@@ -6,7 +6,8 @@ import slack
 import json
 import logging
 
-logger = logging.basicConfig('/data/lunchbot.log')
+logging.basicConfig(filename='/data/lunchbot.log', level=logging.DEBUG)
+logger = logging.getLogger()
 
 app = flask.Flask(__name__)
 app.config.from_pyfile('config.py')
