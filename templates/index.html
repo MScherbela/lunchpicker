@@ -2,9 +2,26 @@
 
 {% block content %}
     <div class="container">
-        <h2>Test message</h2>
-        <form action="" method="post">
-            <input type="submit" class="btn btn-primary" value="Send message"/>
-        </form>
+        <h2>Choices for {{ restaurant }}</h2>
+        <table class="table">
+            <thead>
+            <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Dish</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for table_row in table_rows %}
+                <tr>
+                    <td>{{ table_row['name'] }}</td>
+                    {% if table_row['confirmed'] %}
+                        <td>{{ table_row['dish'] }}</td>
+                    {% else %}
+                        <td><i>No confirmed order</i></td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
     </div>
 {% endblock %}

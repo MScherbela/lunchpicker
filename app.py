@@ -5,8 +5,12 @@ from flask_admin.contrib.sqla import ModelView
 import slack
 import json
 import logging
+from datetime import date
 
-logging.basicConfig(filename='/data/lunchbot.log', level=logging.DEBUG)
+try:
+    logging.basicConfig(filename='/data/lunchbot.log', level=logging.DEBUG)
+except FileNotFoundError:
+    logging.basicConfig(filename='lunchbot.log', level=logging.DEBUG)
 logger = logging.getLogger()
 
 app = flask.Flask(__name__)
@@ -26,6 +30,7 @@ class Restaurant(db.Model):
     url = db.Column(db.String(256), unique=False)
     description = db.Column(db.Text)
     rating = db.Column(db.Float)
+    choices = db.relationship('RestaurantChoice', backref='restaurant')
     dishes = db.relationship('Dish', backref='restaurant')
 
     def __repr__(self):
@@ -36,6 +41,8 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(256))
     last_name = db.Column(db.String(256))
+    slack_id = db.Column(db.String(256))
+    active = db.Column(db.Boolean, default=True)
     dishes = db.relationship('Dish', secondary=user_dishes, lazy='subquery', backref=db.backref('users', lazy=True))
 
     def __repr__(self):
@@ -60,6 +67,12 @@ class DishChoice(db.Model):
     dish_id = db.Column(db.Integer, db.ForeignKey('dish.id'), nullable=False)
     status = db.Column(db.Integer, default=0)
 
+class RestaurantChoice(db.Model):
+    __tablename__ = 'restaurant_choice'
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date)
+    restaurant_id = db.Column(db.Integer, db.ForeignKey('restaurant.id'), nullable=False)
+
 class UserView(ModelView):
     column_hide_backrefs = False
     column_list = ('first_name', 'last_name', 'dishes')
@@ -80,13 +93,35 @@ class RestaurantView(ModelView):
 def is_valid_slack_request(payload):
     return payload['token'] == app.config['SLACK_REQUEST_TOKEN']
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
+@app.route('/sendMessage', methods=['GET', 'POST'])
+def sendMessage():
     if flask.request.method == 'POST':
         r = slack.sendLunchOptionsMessage(app.config['SLACK_BOT_TOKEN'])
         return r.text
     else:
-        return flask.render_template('index.html')
+        return flask.render_template('sendMessage.html')
+
+@app.route('/')
+def index():
+    confirmed_choices = db.session.query(User, DishChoice
+                     ).filter(User.id == DishChoice.user_id
+                     ).filter(DishChoice.date == date.today()).all()
+
+    table_rows = []
+    confirmed_ids = set()
+    for user, choice in confirmed_choices:
+        table_rows.append(dict(name=user.first_name + " " + user.last_name, dish=choice.dish.name, confirmed=True))
+        confirmed_ids.add(user.id)
+
+    unconfirmed_users = User.query.filter_by(active=True).all()
+    for user in unconfirmed_users:
+        if user.id not in confirmed_ids:
+            table_rows.append(dict(name=user.first_name + " " + user.last_name, confirmed=False))
+
+    restaurant = RestaurantChoice.query.filter_by(date=date.today()).first().restaurant
+
+    return flask.render_template('index.html', table_rows=table_rows, restaurant=restaurant.name)
+
 
 @app.route('/api', methods=['POST'])
 def api():
