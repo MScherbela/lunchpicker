@@ -2,9 +2,10 @@
 
 {% block content %}
     <div class="container">
-        <h2>Test message</h2>
+        <h2>Test actions</h2>
         <form action="" method="post">
-            <input type="submit" class="btn btn-primary" value="Send message"/>
+            <input type="submit" class="btn btn-primary" name='choose_restaurant' value="Select random restaurant"/>
+            <input type="submit" class="btn btn-primary" name='send_slack' value="Send message"/>
         </form>
     </div>
 {% endblock %}

@@ -9,6 +9,7 @@
 		},
 		{
 			"type": "section",
+			"block_id": "selection_section",
 			"text": {
 				"type": "mrkdwn",
 				"text": "Your choice:"

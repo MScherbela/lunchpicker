@@ -12,14 +12,17 @@
             </thead>
             <tbody>
             {% for table_row in table_rows %}
-                <tr>
-                    <td>{{ table_row['name'] }}</td>
-                    {% if table_row['confirmed'] %}
-                        <td>{{ table_row['dish'] }}</td>
-                    {% else %}
-                        <td><i>No confirmed order</i></td>
-                    {% endif %}
-                </tr>
+                {% if table_row['status'] == 1 %}
+                    <tr class="table-succes">
+                        <td>{{ table_row['name'] }}</td>
+                        <td>{{ table_row['dish'] }} (Confirmed)</td>
+                    </tr>
+                {% else %}
+                    <tr class="table-light">
+                        <td>{{ table_row['name'] }}</td>
+                        <td>{{ table_row['dish'] }} (Unconfirmed)</td>
+                    </tr>
+                {% endif %}
             {% endfor %}
             </tbody>
         </table>

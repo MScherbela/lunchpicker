@@ -12,31 +12,34 @@ def loadMessage():
         data = json.load(f)
     return data
 
-def sendLunchOptionsMessage(token):
-    restaurant = 'Fladerei'
-    options = ['Tagesfladen', 'Schinken Champignon', 'Sauerrahm Speck Zwiebel']
-    name = 'Michael'
-    user_id = 'U01BM5PTL3G'
-    msg = buildLunchMessage(name, user_id, restaurant, options)
+def sendLunchOptionsMessage(user, restaurant, possible_dishes, proposed_dish, token):
+    msg = copy.deepcopy(MESSAGE_TEMPLATE)
+    msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('RESTAURANT_PLACEHOLDER', restaurant.name).replace('NAME_PLACEHOLDER', user.first_name)
+    msg['blocks'][1]['accessory']['options'] = [dict(text=dict(type='plain_text', text=d.name), value=str(d.id)) for d in possible_dishes]
+    msg['blocks'][1]['accessory']['initial_option'] = dict(text=dict(type='plain_text', text=proposed_dish.name), value=str(proposed_dish.id))
+    msg['blocks'][3]['elements'][2]['url'] = f'https://lunchbot.scherbela.com/addDish/{user.slack_id}'
 
     url = 'https://slack.com/api/chat.postMessage'
-    # channel='TTCK4LQ7R/G01KRNNN44T' # workflow-test
-    # channel='TTCK4LQ7R/D01BD5ESLTZ' # Michael Scherbela
-    channel='U01BM5PTL3G'# Michael Scherbela user id
-
+    channel=user.slack_id
     r = requests.post(url, data=dict(token=token, channel=channel, blocks=json.dumps(msg['blocks'])))
     return r
+#
+def parseSlackRequestPayload(payload):
+    user = getUserId(payload)
+    button = getSlackRequestButtonValue()
+    if button is None:
+        return dict(user=user, button='')
+    if button == 'yes':
+        dish_id = getSelectedDish(payload)
+        return dict(user=user, button=button, dish_id=dish_id)
+    else:
+        return dict(user=user, button=button)
 
-def buildLunchMessage(name, user_id, restaurant, options):
-    msg = copy.deepcopy(MESSAGE_TEMPLATE)
-    msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('RESTAURANT_PLACEHOLDER', restaurant).replace('NAME_PLACEHOLDER', name)
+def getUserId(payload):
+    return payload['user']['id']
 
-    option_objects = [dict(text=dict(type='plain_text', text=o), value=str(i)) for i,o in enumerate(options)]
-    msg['blocks'][1]['accessory']['options'] = option_objects
-    msg['blocks'][1]['accessory']['initial_option'] = option_objects[0]
-
-    msg['blocks'][3]['elements'][2]['url'] = f'https://lunchbot.scherbela.com/addDish/{user_id}'
-    return msg
+def getSelectedDish(payload):
+    return int(payload['state']['values']['selection_section']['static_select-action']['selected_option']["value"])
 
 def getSlackRequestButtonValue(payload):
     if payload['type'] != "block_actions":

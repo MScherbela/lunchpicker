@@ -1,32 +1,59 @@
 from app import db
 import os
-from datetime import date
+import json
 os.remove('lunch.db')
 db.create_all()
-from app import User, Restaurant, Dish, DishChoice, RestaurantChoice
+from app import User, Restaurant, Dish, UserDishWeight
 
-michael = User(first_name="Michael", last_name="Scherbela", slack_id="U01BM5PTL3G")
-pavol = User(first_name="Pavol", last_name="Harar", slack_id="")
-leon = User(first_name="Leon", last_name="Gerard", slack_id="")
+def addRestaurant(name, default_dish, weight=1.0, active=True):
+    r = Restaurant(name=name, weight=weight, active=active)
+    db.session.add(r)
+    db.session.commit()
+    d = Dish(name=default_dish, restaurant_id=r.id, is_default=True)
+    db.session.add(d)
+    db.session.commit()
 
-oishi = Restaurant(name="Oishi")
-biofrische = Restaurant(name="Bio Frische")
-fladerei = Restaurant(name="Fladerei")
+with open('members.json') as f:
+    member_data = json.load(f)
 
-for x in [michael, pavol, leon, oishi, biofrische, fladerei]:
-    db.session.add(x)
-db.session.commit()
+def addUser(first_name, last_name, active=False):
+    for m in member_data['members']:
+        if 'real_name' not in m:
+            continue
+        if m['real_name'] == first_name + ' ' + last_name:
+            u = User(first_name=first_name, last_name=last_name,slack_id=m['id'], active=active)
+            db.session.add(u)
+            db.session.commit()
 
-for d in ['Chicken Korma', 'Samosas']:
-    db.session.add(Dish(name=d, restaurant_id=biofrische.id))
-for d in ['Red Curry Tofu', 'Red Curry Chicken', 'Bento Bulgogi']:
-    db.session.add(Dish(name=d, restaurant_id=oishi.id))
-db.session.commit()
+            default_dishes = Dish.query.filter_by(is_default=True).all()
+            for d in default_dishes:
+                db.session.add(UserDishWeight(user_id=u.id, dish_id=d.id, weight=1.0))
+            db.session.commit()
+            break
+    else:
+        print(f"Did not find user: {first_name} {last_name}")
 
+addRestaurant('Oishi', 'Ricebowl: Red Curry Tofu + Misosuppe', weight=2.0)
+addRestaurant('Bio Frische', 'Dal Makhni')
+addRestaurant('Fladerei', 'Tagesfladen', active=False)
+addRestaurant('Pasta Day', 'Unlimited Pasta', active=False)
+addRestaurant('Sägewerk', 'Pizza Margharita', weight=0.5)
+addRestaurant('Pizzeria Riva', 'Pizza Margharita', weight=0.5)
 
-db.session.add(DishChoice(user_id=michael.id, dish_id=Dish.query.first().id, date=date.today()))
-db.session.add(RestaurantChoice(restaurant_id=biofrische.id, date=date.today()))
-db.session.commit()
+addUser('Michael', 'Scherbela', True)
+addUser('Leon', 'Gerard')
+addUser('Pavol', 'Harar')
+addUser('Julius', 'Berner')
+addUser('Lukas', 'Liehr')
 
-print(DishChoice.query.filter_by(date=date.today()).all())
+results = db.session.query(User, Dish).filter(
+    User.active == True).filter(
+    User.id == UserDishWeight.user_id).filter(
+    UserDishWeight.dish_id == Dish.id).filter(
+    Dish.id == Restaurant.id).filter(
+    Restaurant.active == True).all()
+
+for r in results:
+    print(r)
+
 
