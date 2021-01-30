@@ -18,15 +18,17 @@ def sendLunchOptionsMessage(user, restaurant, possible_dishes, proposed_dish, to
     msg['blocks'][1]['accessory']['options'] = [dict(text=dict(type='plain_text', text=d.name), value=str(d.id)) for d in possible_dishes]
     msg['blocks'][1]['accessory']['initial_option'] = dict(text=dict(type='plain_text', text=proposed_dish.name), value=str(proposed_dish.id))
     msg['blocks'][3]['elements'][2]['url'] = f'https://lunchbot.scherbela.com/addDish/{user.slack_id}'
+    with open('/data/message.json', 'w') as f:
+       json.dump(msg, f, indent=4)
 
     url = 'https://slack.com/api/chat.postMessage'
     channel=user.slack_id
     r = requests.post(url, data=dict(token=token, channel=channel, blocks=json.dumps(msg['blocks'])))
     return r
-#
+
 def parseSlackRequestPayload(payload):
     user = getUserId(payload)
-    button = getSlackRequestButtonValue()
+    button = getSlackRequestButtonValue(payload)
     if button is None:
         return dict(user=user, button='')
     if button == 'yes':

@@ -1,7 +1,7 @@
 from app import db
 import os
 import json
-os.remove('lunch.db')
+os.remove('/data/lunch.db')
 db.create_all()
 from app import User, Restaurant, Dish, UserDishWeight
 

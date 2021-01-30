@@ -110,7 +110,8 @@ def selectRestaurantRandomly():
     RestaurantChoice.query.filter_by(date=today).delete()
     db.session.add(RestaurantChoice(date=today, restaurant_id=r.id))
     db.session.commit()
-    selectDishesRandomly()
+    selectDishesRandomly(r)
+    return active_restaurants
 
 def confirmUserChoice(user_id, dish_id):
     today = date.today()
@@ -121,18 +122,20 @@ def confirmUserChoice(user_id, dish_id):
 def getPossibleDishes(user, restaurant):
     return db.session.query(Dish).filter(UserDishWeight.user_id==user.id).filter(Dish.restaurant_id == restaurant.id).all()
 
-def selectDishesRandomly():
+def selectDishesRandomly(restaurant):
     today = date.today()
-    restaurant_id = RestaurantChoice.query.filter_by(date=today).first().id
     active_users = User.query.filter_by(active=True).all()
+    logger.debug("Restaurant: " + str(restaurant.id))
 
     DishChoice.query.filter_by(date=today).delete()
     for user in active_users:
         results = db.session.query(Dish.id, UserDishWeight.weight).filter(
             UserDishWeight.user_id == user.id).filter(
-            Dish.restaurant_id == restaurant_id).all()
+            Dish.restaurant_id == restaurant.id).filter(
+            Dish.id == UserDishWeight.dish_id).all()
         ids = [r[0] for r in results]
         weights = [r[1] for r in results]
+        logger.debug("Ids: " + str(ids))
         dish_id = random.choices(ids, weights, k=1)[0]
         db.session.add(DishChoice(user_id=user.id, dish_id=dish_id, date=today))
     db.session.commit()
@@ -141,8 +144,9 @@ def selectDishesRandomly():
 def test():
     if flask.request.method == 'POST':
         if 'choose_restaurant' in flask.request.form.keys():
-            selectRestaurantRandomly()
-            return "Selected restaurant"
+            active_restaurants = selectRestaurantRandomly()
+            #return str(active_restaurants)
+            return flask.redirect('/')
         elif 'send_slack' in flask.request.form.keys():
             user = User.query.filter_by(last_name='Scherbela').first()
             r = sendLunchProposal(user)
@@ -193,10 +197,10 @@ def api():
         return 401
     result = slack.parseSlackRequestPayload(payload)
     if result['button'] == 'yes':
-        user = User.filter_by(slack_id=result['user']).first()
-        confirmUserChoice(user.id, result['dish'])
+        user = User.query.filter_by(slack_id=result['user']).first()
+        confirmUserChoice(user.id, result['dish_id'])
     elif result['button'] == 'no':
-        user = User.filter_by(slack_id=result['user']).first()
+        user = User.query.filter_by(slack_id=result['user']).first()
         confirmUserChoice(user.id, None)
 
     with open('/data/requests.txt', 'w') as f:
