@@ -8,19 +8,28 @@
             <tr>
                 <th scope="col">Name</th>
                 <th scope="col">Dish</th>
+                <th scope=""col>Status</th>
             </tr>
             </thead>
             <tbody>
             {% for table_row in table_rows %}
                 {% if table_row['status'] == 1 %}
-                    <tr class="table-succes">
+                    <tr class="table-success">
                         <td>{{ table_row['name'] }}</td>
-                        <td>{{ table_row['dish'] }} (Confirmed)</td>
+                        <td>{{ table_row['dish'] }}</td>
+                        <td>Confirmed</td>
+                    </tr>
+                {% elif table_row['status'] == 2 %}
+                    <tr class="table-warning">
+                        <td>{{ table_row['name'] }}</td>
+                        <td></td>
+                        <td>Does not join</td>
                     </tr>
                 {% else %}
-                    <tr class="table-light">
+                    <tr class="table-secondary">
                         <td>{{ table_row['name'] }}</td>
-                        <td>{{ table_row['dish'] }} (Unconfirmed)</td>
+                        <td>{{ table_row['dish'] }}</td>
+                        <td>No answer</td>
                     </tr>
                 {% endif %}
             {% endfor %}

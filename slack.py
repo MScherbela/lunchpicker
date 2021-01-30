@@ -17,9 +17,7 @@ def sendLunchOptionsMessage(user, restaurant, possible_dishes, proposed_dish, to
     msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('RESTAURANT_PLACEHOLDER', restaurant.name).replace('NAME_PLACEHOLDER', user.first_name)
     msg['blocks'][1]['accessory']['options'] = [dict(text=dict(type='plain_text', text=d.name), value=str(d.id)) for d in possible_dishes]
     msg['blocks'][1]['accessory']['initial_option'] = dict(text=dict(type='plain_text', text=proposed_dish.name), value=str(proposed_dish.id))
-    msg['blocks'][3]['elements'][2]['url'] = f'https://lunchbot.scherbela.com/addDish/{user.slack_id}'
-    with open('/data/message.json', 'w') as f:
-       json.dump(msg, f, indent=4)
+    msg['blocks'][3]['elements'][2]['url'] = f'https://lunchbot.scherbela.com/profile/{user.id}'
 
     url = 'https://slack.com/api/chat.postMessage'
     channel=user.slack_id

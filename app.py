@@ -190,6 +190,20 @@ def index():
     return flask.render_template('index.html', table_rows=table_rows,
                                  restaurant=restaurant_choice.restaurant.name)
 
+@app.route('/profile/<user_id>', methods=['GET', 'POST'])
+def profile(user_id):
+    restaurant = RestaurantChoice.query.filter_by(date=date.today()).first().restaurant
+    user = User.query.get(user_id)
+    if flask.request.method == 'POST':
+        dish_name = flask.request.form['dish_name']
+        if len(dish_name) > 0:
+            dish = Dish(name=dish_name, restaurant_id=restaurant.id)
+            db.session.add(dish)
+            db.session.commit()
+            confirmUserChoice(user_id, dish.id)
+            flask.flash(f"Added dish {dish_name} and selected it for today")
+    return flask.render_template('profile.html', user_name = user.first_name, restaurant=restaurant.name)
+
 @app.route('/api', methods=['POST'])
 def api():
     payload = json.loads(flask.request.values['payload'])
@@ -203,8 +217,7 @@ def api():
         user = User.query.filter_by(slack_id=result['user']).first()
         confirmUserChoice(user.id, None)
 
-    with open('/data/requests.txt', 'w') as f:
-       f.write(json.dumps(payload, indent=4))
+    logger.debug(json.dumps(payload, indent=4))
     return ""
 
 if __name__ == '__main__':
