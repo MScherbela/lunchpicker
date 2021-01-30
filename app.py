@@ -183,7 +183,11 @@ def index():
     table_rows = []
     confirmed_ids = set()
     for user, choice in choices:
-        table_rows.append(dict(name=user.first_name + " " + user.last_name, dish=choice.dish.name, status=choice.status))
+        if choice.status < 2:
+            dish_name = choice.dish.name
+        else:
+            dish_name = ""
+        table_rows.append(dict(name=user.first_name + " " + user.last_name, dish=dish_name, status=choice.status))
         confirmed_ids.add(user.id)
     table_rows = sorted(table_rows, key=lambda r: (r['status'], r['dish']))
 
