@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="container">
+        <h2>Hi {{ user_name }}!</h2>
+        <h4>Add a dish for {{ restaurant }}</h4>
+        <div>
+            <form action="" method="post">
+                <div class="form-group">
+                    <label for="dishname">New dish</label>
+                    <input type="text" class="form-control" id="dishname" name="dish_name" placeholder="Name of dish...">
+                </div>
+                <input type="submit" class="btn btn-primary" name='submit' value="Add and select for today"/>
+            </form>
+        </div>
+    </div>
+{% endblock %}
