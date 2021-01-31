@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="container">
+        <h2>Proposed restaurants</h2>
+        <table class="table">
+            <thead>
+            <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Restaurant</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for table_row in table_rows %}
+                <tr>
+                    <td>{{ table_row[0] }}</td>
+                    <td>{{ table_row[1] }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
