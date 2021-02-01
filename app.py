@@ -51,6 +51,7 @@ class User(db.Model):
     last_name = db.Column(db.String(256))
     slack_id = db.Column(db.String(256))
     active = db.Column(db.Boolean, default=True)
+    vegetarian = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
         return f"{self.first_name} {self.last_name}"
@@ -81,6 +82,19 @@ class RestaurantChoice(db.Model):
     date = db.Column(db.Date)
     restaurant_id = db.Column(db.Integer, db.ForeignKey('restaurant.id'), nullable=False)
 
+    def __repr__(self):
+        return f"<RestCh: {self.date}, {self.restaurant_id}>"
+
+class OrdererChoice(db.Model):
+    __table_name__ = 'orderer_choice'
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    status = db.Column(db.Integer, default=0)
+
+    def __repr__(self):
+        return f"<RestCh: {self.date}, {self.user_id}; status: {self.status}>"
+
 class UserView(ModelView):
     column_hide_backrefs = False
     column_list = ('first_name', 'last_name', 'dishes')
@@ -103,6 +117,7 @@ admin.add_view(ModelView(UserDishWeight, db.session))
 # @scheduler.task('cron', id='send_lunch_options', minute=0, hour=10, day_of_week='mon,tue,wed,thu,fri')
 def sendLunchOptions():
     for user in getActiveUsers():
+        logger.info(f"Sending lunch-options to {user}")
         sendLunchProposal(user)
 
 # @crontab.job(minute=0, hour=4, day_of_week="Sun")
@@ -110,6 +125,11 @@ def proposeRestaurantSchedule():
     for d in range(1, 5+1):
         date = datetime.date.today() + datetime.timedelta(days=d)
         selectRestaurantRandomly(date)
+
+def proposeOrdererSchedule():
+    for d in range(1, 5+1):
+        date = datetime.date.today() + datetime.timedelta(days=d)
+        selectOrderer(date)
 
 def getActiveUsers():
     return User.query.filter_by(active=True).all()
@@ -124,6 +144,32 @@ def getTodaysRestaurant():
 
 def is_valid_slack_request(payload):
     return payload['token'] == app.config['SLACK_REQUEST_TOKEN']
+
+def selectOrderer(date=None):
+    if date is None:
+        date = datetime.date.today()
+    user_choices = db.session.query(User.id, DishChoice.date).filter(
+        User.id == DishChoice.user_id).filter(
+        DishChoice.date < date).filter(
+        DishChoice.status == 1).group_by(User.id).count().all()
+    user_choices = {r[0]:r[1] for r in user_choices}
+    user_orders = db.session.query(User.id, OrdererChoice.date).filter(
+        User.id == OrdererChoice.user_id).filter(
+        OrdererChoice.date < date).group_by(User.id).count.all()
+    user_orders = {r[0]:r[1] for r in user_orders}
+
+    highest_user = None
+    highest_ratio = 0.0
+    for user in getActiveUsers():
+        ratio = user_choices.get(user.id, 0) / user_orders.get(user.id, 0.1)
+        if ratio >= highest_ratio:
+            highest_user = user
+            highest_ratio = ratio
+
+    OrdererChoice.query.filter_by(date=date).delete()
+    db.session.add(OrdererChoice(user_id=highest_user.id, date=date))
+    db.session.commit()
+    return highest_user
 
 def selectRestaurantRandomly(date=None):
     if date is None:
@@ -193,11 +239,11 @@ def test():
     else:
         return flask.render_template('test.html')
 
-@app.route('/restaurant_schedule')
-def restaurant_schedule():
+@app.route('/schedule')
+def schedule():
     results = db.session.query(RestaurantChoice.date, Restaurant.name).filter(
         RestaurantChoice.restaurant_id == Restaurant.id).order_by(RestaurantChoice.date)
-    return flask.render_template("restaurant_schedule.html", table_rows=results)
+    return flask.render_template("schedule.html", table_rows=results)
 
 def sendLunchProposal(user):
     restaurant = getTodaysRestaurant()
