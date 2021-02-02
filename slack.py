@@ -3,8 +3,14 @@ import json
 import os
 import copy
 
-with open('slackmessage.json') as f:
-    MESSAGE_TEMPLATE = json.load(f)
+with open('slack_templates/lunch_options.json') as f:
+    LUNCH_OPTIONS_TEMPLATE = json.load(f)
+
+with open('slack_templates/lunch_confirmation.json') as f:
+    LUNCH_CONFIRMATION_TEMPLATE = json.load(f)
+
+with open('slack_templates/lunch_no_order_confirmation.json') as f:
+    LUNCH_NO_ORDER_CONFIRMATION_TEMPLATE = json.load(f)
 
 def loadMessage():
     print(os.getcwd())
@@ -12,17 +18,28 @@ def loadMessage():
         data = json.load(f)
     return data
 
+def sendMessage(channel, msg, token):
+    url = 'https://slack.com/api/chat.postMessage'
+    r = requests.post(url, data=dict(token=token, channel=channel, blocks=json.dumps(msg['blocks'])))
+    return r
+
+
 def sendLunchOptionsMessage(user, restaurant, possible_dishes, proposed_dish, token):
-    msg = copy.deepcopy(MESSAGE_TEMPLATE)
+    msg = copy.deepcopy(LUNCH_OPTIONS_TEMPLATE)
     msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('RESTAURANT_PLACEHOLDER', restaurant.name).replace('NAME_PLACEHOLDER', user.first_name)
     msg['blocks'][1]['accessory']['options'] = [dict(text=dict(type='plain_text', text=d.name), value=str(d.id)) for d in possible_dishes]
     msg['blocks'][1]['accessory']['initial_option'] = dict(text=dict(type='plain_text', text=proposed_dish.name), value=str(proposed_dish.id))
     msg['blocks'][3]['elements'][2]['url'] = f'https://lunchbot.scherbela.com/profile/{user.id}'
+    return sendMessage(user.slack_id, msg, token)
 
-    url = 'https://slack.com/api/chat.postMessage'
-    channel=user.slack_id
-    r = requests.post(url, data=dict(token=token, channel=channel, blocks=json.dumps(msg['blocks'])))
-    return r
+def sendLunchConfirmation(user, dish_name, token):
+    msg = copy.deepcopy(LUNCH_CONFIRMATION_TEMPLATE)
+    msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('DISH_PLACEHOLDER', dish_name)
+    sendMessage(user.slack_id, msg, token)
+
+def sendLunchNoOrderConfirmation(user, token):
+    msg = copy.deepcopy(LUNCH_NO_ORDER_CONFIRMATION_TEMPLATE)
+    sendMessage(user.slack_id, msg, token)
 
 def parseSlackRequestPayload(payload):
     user = getUserId(payload)

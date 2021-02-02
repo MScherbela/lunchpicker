@@ -22,6 +22,8 @@ app.config.from_pyfile('instance/config.py')
 db = SQLAlchemy(app)
 admin = Admin(app, name='lunch', template_mode='bootstrap3')
 
+SLACK_BOT_TOKEN = app.config['SLACK_BOT_TOKEN']
+
 # scheduler = APScheduler(app=app)
 # scheduler.start()
 
@@ -120,20 +122,31 @@ admin.add_view(ModelView(UserDishWeight, db.session))
 
 # @scheduler.task('cron', id='send_lunch_options', minute=0, hour=10, day_of_week='mon,tue,wed,thu,fri')
 def sendLunchOptions():
-    for user in getActiveUsers():
+    active_users = getActiveUsers()
+    for user in active_users:
         logger.info(f"Sending lunch-options to {user}")
-        sendLunchProposal(user)
+        print(sendLunchProposal(user))
+    return len(active_users)
 
 # @crontab.job(minute=0, hour=4, day_of_week="Sun")
 def proposeRestaurantSchedule():
     for d in range(7):
         date = datetime.date.today() + datetime.timedelta(days=d)
-        selectRestaurantRandomly(date)
+        if date.weekday() < 5: # Mo-Fr
+            selectRestaurantRandomly(date)
 
 def proposeOrdererSchedule():
     for d in range(7):
         date = datetime.date.today() + datetime.timedelta(days=d)
-        selectOrderer(date)
+        if date.weekday() < 5: # Mo-Fr
+            selectOrderer(date)
+
+def setSchedule(date, restaurant_id, orderer_id):
+    RestaurantChoice.query.filter_by(date=date).delete()
+    db.session.add(RestaurantChoice(date=date, restaurant_id=restaurant_id))
+    OrdererChoice.query.filter_by(date=date).delete()
+    db.session.add(OrdererChoice(date=date, user_id=orderer_id))
+    db.session.commit()
 
 def getActiveUsers():
     return User.query.filter_by(active=True).all()
@@ -241,13 +254,23 @@ def test():
             user = User.query.filter_by(last_name='Scherbela').first()
             r = sendLunchProposal(user)
             return r.text
+        elif 'send_active' in flask.request.form.keys():
+            n = sendLunchOptions()
+            flask.flash(f"Messages sent to {n} people")
+        elif 'send_confirmation' in flask.request.form.keys():
+            user = User.query.filter_by(last_name='Scherbela').first()
+            slack.sendLunchConfirmation(user, 'TestDish', SLACK_BOT_TOKEN)
         else:
             return "Unknown request"
-    else:
-        return flask.render_template('test.html')
+    return flask.render_template('test.html')
 
-@app.route('/schedule')
+@app.route('/schedule', methods=['GET', 'POST'])
 def schedule():
+    if flask.request.method == 'POST':
+        form = flask.request.form
+        date = datetime.date.fromisoformat(form['date'])
+        setSchedule(date, int(form['restaurant']), int(form['user']))
+
     result = db.session.query(RestaurantChoice,
                               OrdererChoice).outerjoin(
         OrdererChoice, OrdererChoice.date == RestaurantChoice.date).order_by(RestaurantChoice.date).all()
@@ -310,6 +333,7 @@ def profile(user_id):
             db.session.commit()
             confirmUserChoice(user_id, dish.id)
             flask.flash(f"Added dish {dish_name} and selected it for today")
+            slack.sendLunchConfirmation(user, dish_name, SLACK_BOT_TOKEN)
     return flask.render_template('profile.html', user_name = user.first_name, restaurant=restaurant.name)
 
 @app.route('/api', methods=['POST'])
@@ -321,9 +345,11 @@ def api():
     if result['button'] == 'yes':
         user = User.query.filter_by(slack_id=result['user']).first()
         confirmUserChoice(user.id, result['dish_id'])
+        slack.sendLunchConfirmation(user, Dish.get(result['dish_id']).name, SLACK_BOT_TOKEN)
     elif result['button'] == 'no':
         user = User.query.filter_by(slack_id=result['user']).first()
         confirmUserChoice(user.id, None)
+        slack.sendLunchNoOrderConfirmation(user, SLACK_BOT_TOKEN)
 
     logger.debug(json.dumps(payload, indent=4))
     return ""

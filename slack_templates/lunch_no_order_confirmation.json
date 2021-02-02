@@ -1,0 +1,11 @@
+{
+	"blocks": [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Ok, I'll not get food for you! :+1:\nIf you have any technical issues, contact Michael."
+			}
+		}
+	]
+}

@@ -12,8 +12,8 @@ def addRestaurant(name, default_dishes, weight=1.0, active=True):
     db.session.commit()
     for name, veg in default_dishes:
         d = Dish(name=name, restaurant_id=r.id, vegetarian=veg, is_default=True)
-    db.session.add(d)
-    db.session.commit()
+        db.session.add(d)
+        db.session.commit()
 
 with open('members.json') as f:
     member_data = json.load(f)
@@ -31,14 +31,16 @@ def addUser(first_name, last_name, vegetarian, active=False):
             for d in default_dishes:
                 if u.vegetarian and not d.vegetarian:
                     continue
-                db.session.add(UserDishWeight(user_id=u.id, dish_id=d.id, weight=1.0))
-            db.session.commit()
+                db.session.add(UserDishWeight(user_id=u.id, dish_id=d.id, weight=0.5))
+                db.session.commit()
             break
     else:
         print(f"Did not find user: {first_name} {last_name}")
 
-addRestaurant('Oishi', [('Ricebowl: Red Curry Tofu + Misosuppe', True), ('Bento: Crispy Chicken + Misosuppe', False)], weight=2.0)
-addRestaurant('Bio Frische', [('Dal Makhni', True), ('Butter Chicken', False)])
+addRestaurant('Oishi', [('Ricebowl: Red Curry Tofu + Misosuppe', True),
+                        ('Bento: Crispy Chicken + Misosuppe', False),
+                        ('Bento: Fastenspeise + Misosuppe', True)], weight=2.0)
+addRestaurant('Bio Frische', [('Dal Makhni', True), ('Butter Chicken', False), ('Chicken Korma', False)])
 addRestaurant('Fladerei', [('Tagesfladen (veg.)', True)], active=False)
 addRestaurant('Pasta Day', [('Unlimited Pasta', True)], active=False)
 addRestaurant('Sägewerk', [('Pizza Margharita', True)], weight=0.5)
@@ -52,5 +54,8 @@ addUser('Lukas', 'Liehr', False)
 
 proposeRestaurantSchedule()
 proposeOrdererSchedule()
+
+for d in Dish.query.all():
+    print(d)
 
 

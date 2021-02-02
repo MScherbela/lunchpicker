@@ -5,5 +5,4 @@ flask-bcrypt
 flask-compress
 flask-sqlalchemy
 flask-wtf
-flask-crontab
 requests

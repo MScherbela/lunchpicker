@@ -1,0 +1,11 @@
+{
+	"blocks": [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "I got your order *DISH_PLACEHOLDER* and will take care of it! :smiley:\nIf you have any technical issues, contact Michael."
+			}
+		}
+	]
+}

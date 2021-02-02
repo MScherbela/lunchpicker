@@ -3,35 +3,36 @@
 {% block content %}
     <div class="container">
         <h2>Proposed restaurants</h2>
-        <table class="table">
-            <thead>
-            <tr>
-                <th scope="col">Date</th>
-                <th scope="col">Restaurant</th>
-                <th scope="col">Responsible for ordering</th>
-            </tr>
-            </thead>
-            <tbody>
+        <ul class="list-group">
             {% for table_row in table_rows %}
-                <tr>
-                    <td>{{ table_row['date'] }}</td>
-                    <td>
-                        <select class="form-control">
-                            {% for item in table_row['restaurants'] %}
-                                <option value={{ item['id'] }} {% if item['selected'] %}selected{% endif %}>{{ item.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </td>
-                    <td>
-                        <select class="form-control">
-                            {% for item in table_row['users'] %}
-                                <option value={{ item['id'] }} {% if item['selected'] %}selected{% endif %}>{{ item.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </td>
-                </tr>
+                <li class="list-group-item">
+                    <form method="post">
+                        <div class="form-row">
+                            <div class="col">
+                                <b>{{ table_row['date'] }}</b>
+                                 <input type="hidden" name="date" value={{ table_row['date'] }}>
+                            </div>
+                            <div class="col">
+                                <select name="restaurant" class="form-control">
+                                    {% for item in table_row['restaurants'] %}
+                                        <option value={{ item['id'] }} {% if item['selected'] %}selected{% endif %}>{{ item.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col">
+                                <select name="user" class="form-control">
+                                    {% for item in table_row['users'] %}
+                                        <option value={{ item['id'] }} {% if item['selected'] %}selected{% endif %}>{{ item.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col">
+                                <button type="submit" class="btn btn-primary">Submit change</button>
+                            </div>
+                        </div>
+                    </form>
+                </li>
             {% endfor %}
-            </tbody>
-        </table>
+        </ul>
     </div>
 {% endblock %}
