@@ -7,6 +7,7 @@ import json
 import logging
 import datetime
 import random
+import sqlalchemy.sql.functions
 # from flask_apscheduler import APScheduler
 
 try:
@@ -53,6 +54,9 @@ class User(db.Model):
     active = db.Column(db.Boolean, default=True)
     vegetarian = db.Column(db.Boolean, default=False)
 
+    def get_full_name(self):
+        return self.first_name + " " + self.last_name
+
     def __repr__(self):
         return f"{self.first_name} {self.last_name}"
 
@@ -83,7 +87,7 @@ class RestaurantChoice(db.Model):
     restaurant_id = db.Column(db.Integer, db.ForeignKey('restaurant.id'), nullable=False)
 
     def __repr__(self):
-        return f"<RestCh: {self.date}, {self.restaurant_id}>"
+        return f"<RestaurantChoice: {self.date}, {self.restaurant_id}>"
 
 class OrdererChoice(db.Model):
     __table_name__ = 'orderer_choice'
@@ -93,7 +97,7 @@ class OrdererChoice(db.Model):
     status = db.Column(db.Integer, default=0)
 
     def __repr__(self):
-        return f"<RestCh: {self.date}, {self.user_id}; status: {self.status}>"
+        return f"<OrdererChoice: {self.date}, {self.user_id}; status: {self.status}>"
 
 class UserView(ModelView):
     column_hide_backrefs = False
@@ -122,17 +126,20 @@ def sendLunchOptions():
 
 # @crontab.job(minute=0, hour=4, day_of_week="Sun")
 def proposeRestaurantSchedule():
-    for d in range(1, 5+1):
+    for d in range(7):
         date = datetime.date.today() + datetime.timedelta(days=d)
         selectRestaurantRandomly(date)
 
 def proposeOrdererSchedule():
-    for d in range(1, 5+1):
+    for d in range(7):
         date = datetime.date.today() + datetime.timedelta(days=d)
         selectOrderer(date)
 
 def getActiveUsers():
     return User.query.filter_by(active=True).all()
+
+def getActiveRestaurants():
+    return Restaurant.query.filter_by(active=True).all()
 
 def getTodaysRestaurant():
     today = datetime.date.today()
@@ -148,14 +155,14 @@ def is_valid_slack_request(payload):
 def selectOrderer(date=None):
     if date is None:
         date = datetime.date.today()
-    user_choices = db.session.query(User.id, DishChoice.date).filter(
+    user_choices = db.session.query(User.id, sqlalchemy.sql.functions.count(DishChoice.date)).filter(
         User.id == DishChoice.user_id).filter(
         DishChoice.date < date).filter(
-        DishChoice.status == 1).group_by(User.id).count().all()
+        DishChoice.status >= 0).group_by(User.id).all()
     user_choices = {r[0]:r[1] for r in user_choices}
-    user_orders = db.session.query(User.id, OrdererChoice.date).filter(
+    user_orders = db.session.query(User.id, sqlalchemy.sql.functions.count(OrdererChoice.date)).filter(
         User.id == OrdererChoice.user_id).filter(
-        OrdererChoice.date < date).group_by(User.id).count.all()
+        OrdererChoice.date < date).group_by(User.id).all()
     user_orders = {r[0]:r[1] for r in user_orders}
 
     highest_user = None
@@ -241,9 +248,20 @@ def test():
 
 @app.route('/schedule')
 def schedule():
-    results = db.session.query(RestaurantChoice.date, Restaurant.name).filter(
-        RestaurantChoice.restaurant_id == Restaurant.id).order_by(RestaurantChoice.date)
-    return flask.render_template("schedule.html", table_rows=results)
+    result = db.session.query(RestaurantChoice,
+                              OrdererChoice).outerjoin(
+        OrdererChoice, OrdererChoice.date == RestaurantChoice.date).order_by(RestaurantChoice.date).all()
+
+    restaurants = getActiveRestaurants()
+    users = getActiveUsers()
+
+    table_rows = []
+    for row in result:
+        restaurant_options = [dict(id=r.id, name=r.name, selected=(r.id == row[0].restaurant_id)) for r in restaurants]
+        user_options = [dict(id=u.id, name=u.get_full_name(), selected=(u.id == row[1].user_id)) for u in users]
+        table_rows.append(dict(date=row[0].date, restaurants=restaurant_options, users=user_options))
+
+    return flask.render_template("schedule.html", table_rows=table_rows)
 
 def sendLunchProposal(user):
     restaurant = getTodaysRestaurant()

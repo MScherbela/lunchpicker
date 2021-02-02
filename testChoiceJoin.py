@@ -7,7 +7,10 @@ from app import proposeOrdererSchedule, proposeRestaurantSchedule
 proposeOrdererSchedule()
 proposeRestaurantSchedule()
 
-result = db.session.query(RestaurantChoice, OrdererChoice).outerjoin(OrdererChoice, OrdererChoice.date == RestaurantChoice.date).all()
+result = db.session.query(RestaurantChoice, OrdererChoice).outerjoin(OrdererChoice, OrdererChoice.date == RestaurantChoice.date).order_by(RestaurantChoice.date).all()
 print(result)
+
+for r in result:
+    print(str(r[0]) + " "*10 + str(r[1]))
 
 

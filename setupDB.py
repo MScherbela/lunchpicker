@@ -1,4 +1,4 @@
-from app import db
+from app import db, proposeRestaurantSchedule, proposeOrdererSchedule
 import os
 import json
 if os.path.isfile('/data/lunch.db'):
@@ -50,14 +50,7 @@ addUser('Pavol', 'Harar', True)
 addUser('Julius', 'Berner', True)
 addUser('Lukas', 'Liehr', False)
 
-results = db.session.query(User, Dish).filter(
-    User.active == True).filter(
-    User.id == UserDishWeight.user_id).filter(
-    UserDishWeight.dish_id == Dish.id).filter(
-    Dish.id == Restaurant.id).filter(
-    Restaurant.active == True).all()
-
-for r in results:
-    print(r)
+proposeRestaurantSchedule()
+proposeOrdererSchedule()
 
 
