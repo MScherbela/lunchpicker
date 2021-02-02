@@ -347,7 +347,7 @@ def api():
     if result['button'] == 'yes':
         user = User.query.filter_by(slack_id=result['user']).first()
         confirmUserChoice(user.id, result['dish_id'])
-        slack.sendLunchConfirmation(user, Dish.get(result['dish_id']).name, SLACK_BOT_TOKEN)
+        slack.sendLunchConfirmation(user, Dish.query.get(result['dish_id']).name, SLACK_BOT_TOKEN)
     elif result['button'] == 'no':
         user = User.query.filter_by(slack_id=result['user']).first()
         confirmUserChoice(user.id, None)
