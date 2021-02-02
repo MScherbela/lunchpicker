@@ -204,6 +204,7 @@ def selectRestaurantRandomly(date=None):
             RestaurantChoice.date >= date - datetime.timedelta(days=2)).filter(
             RestaurantChoice.date < date).all()
         blacklist = set(r[0] for r in latest_restaurants)
+        blacklist.add(Restaurant.query.filter_by(name='Pasta Day').first().id)
         active_restaurants = Restaurant.query.filter_by(active=True).all()
         active_restaurants = [r for r in active_restaurants if r.id not in blacklist]
         weights = [r.weight for r in active_restaurants]
