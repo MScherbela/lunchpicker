@@ -20,13 +20,6 @@
                                 </select>
                             </div>
                             <div class="col">
-                                <select name="user" class="form-control">
-                                    {% for item in table_row['users'] %}
-                                        <option value={{ item['id'] }} {% if item['selected'] %}selected{% endif %}>{{ item.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col">
                                 <button type="submit" class="btn btn-danger">Submit change</button>
                             </div>
                         </div>

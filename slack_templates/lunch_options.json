@@ -4,7 +4,7 @@
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": "Hello NAME_PLACEHOLDER,\nWe're getting lunch from *RESTAURANT_PLACEHOLDER* today.\nI've preselected for you, but feel free to change."
+				"text": "Hello NAME_PLACEHOLDER,\nWe're getting lunch from *RESTAURANT_PLACEHOLDER* today.\nI've preselected for you, but feel free to change and submit within the next 30 minutes."
 			}
 		},
 		{

@@ -4,11 +4,12 @@
     <div class="container">
         <h2>Test actions</h2>
         <form action="" method="post">
-            <input type="submit" class="btn btn-primary" name='choose_restaurant' value="Select random restaurant"/>
-            <input type="submit" class="btn btn-primary" name='send_slack' value="Send message to Michael"/>
-            <input type="submit" class="btn btn-danger" name='send_active' value="Send message to all active"/>
-            <input type="submit" class="btn btn-primary" name='choose_5_restaurants' value="Propose next 5 restaurants"/>
-            <input type="submit" class="btn btn-primary" name='send_confirmation' value="Send dummy confirmation to Michael"/>
+            <div class="form-row"><input type="submit" class="btn btn-primary" name='choose_restaurant' value="Select random restaurant"/></div>
+            <div class="form-row"><input type="submit" class="btn btn-primary" name='send_slack' value="Send message to Michael"/></div>
+            <div class="form-row"><input type="submit" class="btn btn-danger" name='send_active' value="Send message to all active"/></div>
+            <div class="form-row"><input type="submit" class="btn btn-primary" name='choose_5_restaurants' value="Propose next 5 restaurants"/></div>
+            <div class="form-row"><input type="submit" class="btn btn-primary" name='send_confirmation' value="Send dummy confirmation to Michael"/></div>
+            <div class="form-row"><input type="submit" class="btn btn-primary" name='send_order_summary' value="Send Order summary to Michael"/></div>
         </form>
     </div>
 {% endblock %}

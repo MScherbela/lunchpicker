@@ -10,7 +10,7 @@ import random
 import sqlalchemy.sql.functions
 from flask_basicauth import BasicAuth
 from werkzeug.exceptions import HTTPException
-# from flask_apscheduler import APScheduler
+from flask_apscheduler import APScheduler
 
 try:
     logging.basicConfig(filename='/data/lunchbot.log', level=logging.DEBUG)
@@ -26,8 +26,8 @@ basic_auth = BasicAuth(app)
 
 SLACK_BOT_TOKEN = app.config['SLACK_BOT_TOKEN']
 
-# scheduler = APScheduler(app=app)
-# scheduler.start()
+scheduler = APScheduler(app=app)
+scheduler.start()
 
 class UserDishWeight(db.Model):
     __tablename__ = 'user_dish_weight'
@@ -145,9 +145,30 @@ admin.add_view(RestaurantView(Restaurant, db.session))
 admin.add_view(DishView(Dish, db.session))
 admin.add_view(ProtectedModelView(DishChoice, db.session))
 admin.add_view(ProtectedModelView(RestaurantChoice, db.session))
+admin.add_view(ProtectedModelView(OrdererChoice, db.session))
 admin.add_view(ProtectedModelView(UserDishWeight, db.session))
 
-# @scheduler.task('cron', id='send_lunch_options', minute=0, hour=10, day_of_week='mon,tue,wed,thu,fri')
+@scheduler.task('cron', id='heartbeat', minute=30, hour=8)
+def hearbeatTask():
+    logger.debug("I'm still alive!")
+
+@scheduler.task('cron', id='send_lunch_options', minute=30, hour=10, day_of_week='mon,tue,wed,thu,fri')
+def sendLunchOptionsTask():
+    sendLunchOptions()
+
+@scheduler.task('cron', id='send_order_summary', minute=0, hour=11, day_of_week='mon,tue,wed,thu,fri')
+def sendOrderSummaryTask():
+    sendOrderSummary()
+    updateDishWeights()
+
+@scheduler.task('cron', id='propose_restaurant_schedule', minute=0, hour=4, day_of_week="Sun")
+def proposeRestaurantScheduleTask():
+    proposeRestaurantSchedule()
+
+def updateDishWeights():
+    """Calculate dish preferences based on order history"""
+    pass
+
 def sendLunchOptions():
     active_users = getActiveUsers()
     for user in active_users:
@@ -155,52 +176,77 @@ def sendLunchOptions():
         print(sendLunchProposal(user))
     return len(active_users)
 
-# @crontab.job(minute=0, hour=4, day_of_week="Sun")
 def proposeRestaurantSchedule():
     for d in range(7):
         date = datetime.date.today() + datetime.timedelta(days=d)
         if date.weekday() < 5: # Mo-Fr
             selectRestaurantRandomly(date)
 
-def proposeOrdererSchedule():
-    for d in range(7):
-        date = datetime.date.today() + datetime.timedelta(days=d)
-        if date.weekday() < 5: # Mo-Fr
-            selectOrderer(date)
-
-def setSchedule(date, restaurant_id, orderer_id):
-    RestaurantChoice.query.filter_by(date=date).delete()
-    db.session.add(RestaurantChoice(date=date, restaurant_id=restaurant_id))
+def setRestaurantSchedule(date, restaurant_id):
+    choice = RestaurantChoice.query.filter_by(date=date).first()
+    if (choice is not None) and choice.restaurant_id == restaurant_id:
+        return  # Already same restaurant selected; nothing to do
+    if choice is None:
+        choice = RestaurantChoice(date=date, restaurant_id=restaurant_id)
+        db.session.add(choice)
+    else:
+        choice.restaurant_id = restaurant_id
+    db.session.commit()
     selectDishesRandomly(Restaurant.query.get(restaurant_id), date)
 
-    OrdererChoice.query.filter_by(date=date).delete()
-    db.session.add(OrdererChoice(date=date, user_id=orderer_id))
-    db.session.commit()
+def sendOrderSummary(responsible_user=None):
+    date = datetime.date.today()
+    orders = db.session.query(Dish, User).filter(
+        DishChoice.dish_id == Dish.id).filter(
+        DishChoice.user_id == User.id).filter(
+        DishChoice.date == date).filter(
+        DishChoice.status == 1).order_by(Dish.name).all()
+    orders = [(o[0].name, o[1].first_name) for o in orders]
+    if len(orders) == 0:
+        return
+
+    if responsible_user is None:
+        responsible_user = selectOrderer(date)
+    slack.sendOrderSummary(responsible_user, orders, getTodaysRestaurant().name, SLACK_BOT_TOKEN)
 
 def getActiveUsers():
     return User.query.filter_by(active=True).all()
 
+def getUsersWithConfirmedOrder(date):
+    if date is None:
+        date = datetime.date.today()
+    return db.session.query(User).filter(
+        User.id == DishChoice.user_id).filter(
+        DishChoice.date==date).filter(
+        DishChoice.status == 1).all()
+
 def getActiveRestaurants():
     return Restaurant.query.filter_by(active=True).all()
 
-def getTodaysRestaurant():
-    today = datetime.date.today()
-    restaurant_choice = RestaurantChoice.query.filter_by(date=today).first()
+def getTodaysRestaurant(date=None):
+    if date is None:
+        date = datetime.date.today()
+    restaurant_choice = RestaurantChoice.query.filter_by(date=date).first()
     if restaurant_choice is None:
-        return selectRestaurantRandomly()
+        return selectRestaurantRandomly(date)
     else:
         return restaurant_choice.restaurant
 
 def is_valid_slack_request(payload):
     return payload['token'] == app.config['SLACK_REQUEST_TOKEN']
 
+
 def selectOrderer(date=None):
     if date is None:
         date = datetime.date.today()
+    potential_users = getUsersWithConfirmedOrder()
+    if len(potential_users) == 0:
+        return None
+
     user_choices = db.session.query(User.id, sqlalchemy.sql.functions.count(DishChoice.date)).filter(
         User.id == DishChoice.user_id).filter(
         DishChoice.date < date).filter(
-        DishChoice.status >= 0).group_by(User.id).all()
+        DishChoice.status == 1).group_by(User.id).all()
     user_choices = {r[0]:r[1] for r in user_choices}
     user_orders = db.session.query(User.id, sqlalchemy.sql.functions.count(OrdererChoice.date)).filter(
         User.id == OrdererChoice.user_id).filter(
@@ -301,6 +347,9 @@ def test():
         elif 'send_confirmation' in flask.request.form.keys():
             user = User.query.filter_by(last_name='Scherbela').first()
             slack.sendLunchConfirmation(user, 'TestDish', SLACK_BOT_TOKEN)
+        elif 'send_order_summary' in flask.request.form.keys():
+            user = User.query.filter_by(last_name='Scherbela').first()
+            sendOrderSummary(user)
         else:
             return "Unknown request"
     return flask.render_template('test.html')
@@ -311,20 +360,15 @@ def schedule():
     if flask.request.method == 'POST':
         form = flask.request.form
         date = datetime.date.fromisoformat(form['date'])
-        setSchedule(date, int(form['restaurant']), int(form['user']))
+        setRestaurantSchedule(date, int(form['restaurant']))
 
-    result = db.session.query(RestaurantChoice,
-                              OrdererChoice).outerjoin(
-        OrdererChoice, OrdererChoice.date == RestaurantChoice.date).order_by(RestaurantChoice.date).all()
-
+    restaurant_choices = RestaurantChoice.query.order_by(RestaurantChoice.date).all()
     restaurants = getActiveRestaurants()
-    users = getActiveUsers()
 
     table_rows = []
-    for row in result:
-        restaurant_options = [dict(id=r.id, name=r.name, selected=(r.id == row[0].restaurant_id)) for r in restaurants]
-        user_options = [dict(id=u.id, name=u.get_full_name(), selected=(u.id == row[1].user_id)) for u in users]
-        table_rows.append(dict(date=row[0].date, restaurants=restaurant_options, users=user_options))
+    for choice in restaurant_choices:
+        restaurant_options = [dict(id=r.id, name=r.name, selected=(r.id == choice.restaurant_id)) for r in restaurants]
+        table_rows.append(dict(date=choice.date, restaurants=restaurant_options))
 
     return flask.render_template("schedule.html", table_rows=table_rows)
 
