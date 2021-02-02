@@ -1,6 +1,6 @@
 import flask
 from flask_sqlalchemy import SQLAlchemy
-from flask_admin import Admin
+from flask_admin import Admin, AdminIndexView
 from flask_admin.contrib.sqla import ModelView
 import slack
 import json
@@ -8,6 +8,8 @@ import logging
 import datetime
 import random
 import sqlalchemy.sql.functions
+from flask_basicauth import BasicAuth
+from werkzeug.exceptions import HTTPException
 # from flask_apscheduler import APScheduler
 
 try:
@@ -20,7 +22,7 @@ app = flask.Flask(__name__)
 app.config.from_pyfile('config.py')
 app.config.from_pyfile('instance/config.py')
 db = SQLAlchemy(app)
-admin = Admin(app, name='lunch', template_mode='bootstrap3')
+basic_auth = BasicAuth(app)
 
 SLACK_BOT_TOKEN = app.config['SLACK_BOT_TOKEN']
 
@@ -101,24 +103,49 @@ class OrdererChoice(db.Model):
     def __repr__(self):
         return f"<OrdererChoice: {self.date}, {self.user_id}; status: {self.status}>"
 
-class UserView(ModelView):
+class AuthException(HTTPException):
+    def __init__(self, message):
+        super().__init__(message, flask.Response(
+            "You could not be authenticated. Please refresh the page.", 401,
+            {'WWW-Authenticate': 'Basic realm="Login Required"'} ))
+
+class ProtectedModelView(ModelView):
+    def is_accessible(self):
+        if not basic_auth.authenticate():
+            raise AuthException('Not authenticated.')
+        return True
+
+    def inaccessible_callback(self, name, **kwargs):
+        return flask.redirect(basic_auth.challenge())
+
+class ProtectedAdminIndexView(AdminIndexView):
+    def is_accessible(self):
+        if not basic_auth.authenticate():
+            raise AuthException('Not authenticated.')
+        return True
+
+    def inaccessible_callback(self, name, **kwargs):
+        return flask.redirect(basic_auth.challenge())
+
+class UserView(ProtectedModelView):
     column_hide_backrefs = False
     column_list = ('first_name', 'last_name', 'dishes')
 
-class DishView(ModelView):
+class DishView(ProtectedModelView):
     column_hide_backrefs = False
     column_list = ('name', 'restaurant', 'users')
 
-class RestaurantView(ModelView):
+class RestaurantView(ProtectedModelView):
     column_hide_backrefs = False
     column_list = ('name', 'url', 'description', 'rating', 'dishes')
 
+admin = Admin(app, name='lunch', template_mode='bootstrap3', index_view=ProtectedAdminIndexView())
 admin.add_view(UserView(User, db.session))
 admin.add_view(RestaurantView(Restaurant, db.session))
 admin.add_view(DishView(Dish, db.session))
-admin.add_view(ModelView(DishChoice, db.session))
-admin.add_view(ModelView(RestaurantChoice, db.session))
-admin.add_view(ModelView(UserDishWeight, db.session))
+admin.add_view(ProtectedModelView(DishChoice, db.session))
+admin.add_view(ProtectedModelView(RestaurantChoice, db.session))
+admin.add_view(ProtectedModelView(UserDishWeight, db.session))
 
 # @scheduler.task('cron', id='send_lunch_options', minute=0, hour=10, day_of_week='mon,tue,wed,thu,fri')
 def sendLunchOptions():
@@ -244,7 +271,18 @@ def selectDishesRandomly(restaurant, date=None):
         db.session.add(DishChoice(user_id=user.id, dish_id=dish_id, date=date))
     db.session.commit()
 
+def sendLunchProposal(user):
+    restaurant = getTodaysRestaurant()
+
+    possible_dishes = getPossibleDishes(user, restaurant)
+    proposed_dish = db.session.query(Dish).filter(
+        DishChoice.user_id == user.id).filter(
+        DishChoice.date == datetime.date.today()).filter(
+        Dish.id == DishChoice.dish_id).first()
+    return slack.sendLunchOptionsMessage(user, restaurant, possible_dishes, proposed_dish, app.config['SLACK_BOT_TOKEN'])
+
 @app.route('/test', methods=['GET', 'POST'])
+@basic_auth.required
 def test():
     if flask.request.method == 'POST':
         if 'choose_restaurant' in flask.request.form.keys():
@@ -268,6 +306,7 @@ def test():
     return flask.render_template('test.html')
 
 @app.route('/schedule', methods=['GET', 'POST'])
+@basic_auth.required
 def schedule():
     if flask.request.method == 'POST':
         form = flask.request.form
@@ -289,19 +328,8 @@ def schedule():
 
     return flask.render_template("schedule.html", table_rows=table_rows)
 
-def sendLunchProposal(user):
-    restaurant = getTodaysRestaurant()
-
-    possible_dishes = getPossibleDishes(user, restaurant)
-    proposed_dish = db.session.query(Dish).filter(
-        DishChoice.user_id == user.id).filter(
-        DishChoice.date == datetime.date.today()).filter(
-        Dish.id == DishChoice.dish_id).first()
-
-    return slack.sendLunchOptionsMessage(user, restaurant, possible_dishes, proposed_dish, app.config['SLACK_BOT_TOKEN'])
-
-
 @app.route('/')
+# No basic auth for index view, since no sensitive data (beyond names)
 def index():
     restaurant = getTodaysRestaurant()
 
@@ -325,6 +353,7 @@ def index():
                                  restaurant=restaurant.name)
 
 @app.route('/profile/<user_id>', methods=['GET', 'POST'])
+# No basic auth right now for UX-reasons
 def profile(user_id):
     restaurant = getTodaysRestaurant()
     user = User.query.get(user_id)
@@ -340,10 +369,11 @@ def profile(user_id):
     return flask.render_template('profile.html', user_name = user.first_name, restaurant=restaurant.name)
 
 @app.route('/api', methods=['POST'])
+# No basic auth, because needs to be reachable by slack, but checking for valid token
 def api():
     payload = json.loads(flask.request.values['payload'])
     if not is_valid_slack_request(payload):
-        return 401
+        return "Not authorized", 401
     result = slack.parseSlackRequestPayload(payload)
     if result['button'] == 'yes':
         user = User.query.filter_by(slack_id=result['user']).first()

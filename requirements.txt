@@ -5,4 +5,5 @@ flask-bcrypt
 flask-compress
 flask-sqlalchemy
 flask-wtf
+flask-basicauth
 requests
