@@ -42,7 +42,7 @@ addRestaurant('Oishi', [('Ricebowl: Red Curry Tofu + Misosuppe', True),
                         ('Bento: Fastenspeise + Misosuppe', True)], weight=2.0)
 addRestaurant('Bio Frische', [('Dal Makhni', True), ('Butter Chicken', False), ('Chicken Korma', False)])
 addRestaurant('Fladerei', [('Tagesfladen (veg.)', True)], active=False)
-addRestaurant('Pasta Day', [('Unlimited Pasta', True)], active=False)
+addRestaurant('Pasta Day', [('Unlimited Pasta', True)], active=True)
 addRestaurant('Sägewerk', [('Pizza Margharita', True)], weight=0.5)
 addRestaurant('Pizzeria Riva', [('Pizza Margharita', True)], weight=0.5)
 

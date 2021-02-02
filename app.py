@@ -144,6 +144,8 @@ def proposeOrdererSchedule():
 def setSchedule(date, restaurant_id, orderer_id):
     RestaurantChoice.query.filter_by(date=date).delete()
     db.session.add(RestaurantChoice(date=date, restaurant_id=restaurant_id))
+    selectDishesRandomly(Restaurant.query.get(restaurant_id), date)
+
     OrdererChoice.query.filter_by(date=date).delete()
     db.session.add(OrdererChoice(date=date, user_id=orderer_id))
     db.session.commit()
