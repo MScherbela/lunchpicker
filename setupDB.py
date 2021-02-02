@@ -51,6 +51,7 @@ addUser('Leon', 'Gerard', False)
 addUser('Pavol', 'Harar', True)
 addUser('Julius', 'Berner', True)
 addUser('Lukas', 'Liehr', False)
+addUser('Martin', 'Rathmair', True)
 
 proposeRestaurantSchedule()
 proposeOrdererSchedule()
