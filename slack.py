@@ -57,7 +57,7 @@ def sendOrderSummary(user, order_list, restaurant_name, token):
     msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('NAME_PLACEHOLDER', user.first_name)
     msg['blocks'][3]['text']['text'] = msg['blocks'][3]['text']['text'].replace('RESTAURANT_PLACEHOLDER', restaurant_name)
 
-    orders = [dict(text=dict(type="mrkdwn", text=f"*{o[0]}* ({o[1]})")) for o in order_list]
+    orders = [dict(value=str(i), text=dict(type="mrkdwn", text=f"*{o[0]}* ({o[1]})")) for i,o in enumerate(order_list)]
     msg['blocks'][3]['accessory']['options'] = orders
     return sendMessage(user.slack_id, msg, token, text=f"Hi {user.first_name}, please take care of today's order!")
 

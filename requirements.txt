@@ -6,5 +6,5 @@ flask-compress
 flask-sqlalchemy
 flask-wtf
 flask-basicauth
-flas-apscheduler
+flask-apscheduler
 requests
