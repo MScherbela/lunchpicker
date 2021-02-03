@@ -187,6 +187,15 @@ def proposeRestaurantSchedule():
         if date.weekday() < 5: # Mo-Fr
             selectRestaurantRandomly(date)
 
+def addDish(dish_name, user, restaurant, confirm_choice):
+    dish = Dish(name=dish_name, restaurant_id=restaurant.id)
+    db.session.add(dish)
+    db.session.commit()
+    db.session.add(UserDishWeight(user_id=user.id, dish_id=dish.id))
+    db.session.add()
+    if confirm_choice:
+        confirmUserChoice(user.id, dish.id)
+
 def setRestaurantSchedule(date, restaurant_id):
     choice = RestaurantChoice.query.filter_by(date=date).first()
     if (choice is not None) and choice.restaurant_id == restaurant_id:
@@ -414,10 +423,7 @@ def profile(user_id):
     if flask.request.method == 'POST':
         dish_name = flask.request.form['dish_name']
         if len(dish_name) > 0:
-            dish = Dish(name=dish_name, restaurant_id=restaurant.id)
-            db.session.add(dish)
-            db.session.commit()
-            confirmUserChoice(user_id, dish.id)
+            addDish(dish_name, user, restaurant, confirm_choice=True)
             flask.flash(f"Added dish {dish_name} and selected it for today")
             slack.sendLunchConfirmation(user, dish_name, SLACK_BOT_TOKEN)
     return flask.render_template('profile.html', user_name = user.first_name, restaurant=restaurant.name)
