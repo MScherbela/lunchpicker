@@ -26,11 +26,11 @@ def sendMessage(channel, msg, token, text=None):
     data = dict(token=token, channel=channel, blocks=json.dumps(msg['blocks']))
     if text is not None:
         data['text'] = text
-    if channel == 'U01BM5PTL3G':
-        r = requests.post(url, data=data)
-    else:
-        raise ValueError("Warning: Sending of messages disabled")
-    # r = requests.post(url, data=data)
+    #if channel == 'U01BM5PTL3G':
+    #    r = requests.post(url, data=data)
+    #else:
+    #    raise ValueError("Warning: Sending of messages disabled")
+    r = requests.post(url, data=data)
     return r
 
 def sendLunchOptionsMessage(user, restaurant, possible_dishes, proposed_dish, token):
@@ -39,6 +39,8 @@ def sendLunchOptionsMessage(user, restaurant, possible_dishes, proposed_dish, to
     msg['blocks'][1]['accessory']['options'] = [dict(text=dict(type='plain_text', text=d.name), value=str(d.id)) for d in possible_dishes]
     msg['blocks'][1]['accessory']['initial_option'] = dict(text=dict(type='plain_text', text=proposed_dish.name), value=str(proposed_dish.id))
     msg['blocks'][3]['elements'][2]['url'] = f'https://lunchbot.scherbela.com/profile/{user.id}'
+    if restaurant.name == 'Pasta Day':
+        msg['blocks'][3]['elements'] = msg['blocks'][3]['elements'][:2] # remove something-else-button for Pasta day
     fallback_text = f"Hi {user.first_name}, we're getting lunch from {restaurant.name}. What do you want?"
     return sendMessage(user.slack_id, msg, token, fallback_text)
 

@@ -13,9 +13,9 @@ from werkzeug.exceptions import HTTPException
 from flask_apscheduler import APScheduler
 
 try:
-    logging.basicConfig(filename='/data/lunchbot.log', level=logging.DEBUG)
+    logging.basicConfig(filename='/data/lunchbot.log', level=logging.DEBUG, format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 except FileNotFoundError:
-    logging.basicConfig(filename='lunchbot.log', level=logging.DEBUG)
+    logging.basicConfig(filename='lunchbot.log', level=logging.DEBUG, format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger()
 
 app = flask.Flask(__name__)
@@ -152,11 +152,11 @@ admin.add_view(ProtectedModelView(UserDishWeight, db.session))
 def hearbeatTask():
     logger.debug("I'm still alive!")
 
-@scheduler.task('cron', id='send_lunch_options', minute=30, hour=10, day_of_week='mon,tue,wed,thu,fri')
+@scheduler.task('cron', id='send_lunch_options', minute=45, hour=10, day_of_week='mon,tue,wed,thu,fri')
 def sendLunchOptionsTask():
     sendLunchOptions()
 
-@scheduler.task('cron', id='send_order_summary', minute=0, hour=11, day_of_week='mon,tue,wed,thu,fri')
+@scheduler.task('cron', id='send_order_summary', minute=15, hour=11, day_of_week='mon,tue,wed,thu,fri')
 def sendOrderSummaryTask():
     sendOrderSummary()
     updateDishWeights()
@@ -208,11 +208,12 @@ def sendOrderSummary(responsible_user=None):
     if responsible_user is None:
         responsible_user = selectOrderer(date)
     slack.sendOrderSummary(responsible_user, orders, getTodaysRestaurant().name, SLACK_BOT_TOKEN)
+    logger.info(f"Sent lunch order summary to: {responsible_user.first_name}")
 
 def getActiveUsers():
     return User.query.filter_by(active=True).all()
 
-def getUsersWithConfirmedOrder(date):
+def getUsersWithConfirmedOrder(date=None):
     if date is None:
         date = datetime.date.today()
     return db.session.query(User).filter(
@@ -347,9 +348,11 @@ def test():
         elif 'send_confirmation' in flask.request.form.keys():
             user = User.query.filter_by(last_name='Scherbela').first()
             slack.sendLunchConfirmation(user, 'TestDish', SLACK_BOT_TOKEN)
-        elif 'send_order_summary' in flask.request.form.keys():
+        elif 'send_order_summary_michael' in flask.request.form.keys():
             user = User.query.filter_by(last_name='Scherbela').first()
             sendOrderSummary(user)
+        elif 'send_order_summary' in flask.request.form.keys():
+            sendOrderSummary()
         else:
             return "Unknown request"
     return flask.render_template('test.html')
@@ -419,16 +422,14 @@ def api():
     if not is_valid_slack_request(payload):
         return "Not authorized", 401
     result = slack.parseSlackRequestPayload(payload)
+    user = User.query.filter_by(slack_id=result['user']).first()
+    logger.info(f"Received api request from user {user.get_full_name()}")
     if result['button'] == 'yes':
-        user = User.query.filter_by(slack_id=result['user']).first()
         confirmUserChoice(user.id, result['dish_id'])
         slack.sendLunchConfirmation(user, Dish.query.get(result['dish_id']).name, SLACK_BOT_TOKEN)
     elif result['button'] == 'no':
-        user = User.query.filter_by(slack_id=result['user']).first()
         confirmUserChoice(user.id, None)
         slack.sendLunchNoOrderConfirmation(user, SLACK_BOT_TOKEN)
-
-    logger.debug(json.dumps(payload, indent=4))
     return ""
 
 if __name__ == '__main__':
