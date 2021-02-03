@@ -167,11 +167,11 @@ def proposeRestaurantScheduleTask():
 
 def updateDishWeights():
     """Calculate dish preferences based on order history"""
-    for user in User.all():
-        weights = UserDishWeight.filter_by(user_id=user.id).all()
+    for user in User.query.all():
+        weights = UserDishWeight.query.filter_by(user_id=user.id).all()
         for w in weights:
-            n_orders = DishChoice.filter_by(user_id=user.id, dish_id=w.dish_id, status=1).count()
-            weights.weight = n_orders + 0.1
+            n_orders = DishChoice.query.filter_by(user_id=user.id, dish_id=w.dish_id, status=1).count()
+            w.weight = n_orders + 0.1
     db.session.commit()
 
 def sendLunchOptions():
