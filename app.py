@@ -167,7 +167,12 @@ def proposeRestaurantScheduleTask():
 
 def updateDishWeights():
     """Calculate dish preferences based on order history"""
-    pass
+    for user in User.all():
+        weights = UserDishWeight.filter_by(user_id=user.id).all()
+        for w in weights:
+            n_orders = DishChoice.filter_by(user_id=user.id, dish_id=w.dish_id, status=1).count()
+            weights.weight = n_orders + 0.1
+    db.session.commit()
 
 def sendLunchOptions():
     active_users = getActiveUsers()
@@ -353,6 +358,8 @@ def test():
             sendOrderSummary(user)
         elif 'send_order_summary' in flask.request.form.keys():
             sendOrderSummary()
+        elif 'update_dish_weights' in flask.request.form.keys():
+            updateDishWeights()
         else:
             return "Unknown request"
     return flask.render_template('test.html')
