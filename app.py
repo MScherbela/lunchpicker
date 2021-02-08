@@ -152,14 +152,14 @@ admin.add_view(ProtectedModelView(UserDishWeight, db.session))
 def hearbeatTask():
     logger.debug("I'm still alive!")
 
-@scheduler.task('cron', id='send_lunch_options', minute=45, hour=10, day_of_week='mon,tue,wed,thu,fri')
-def sendLunchOptionsTask():
-    sendLunchOptions()
+#@scheduler.task('cron', id='send_lunch_options', minute=45, hour=10, day_of_week='mon,tue,wed,thu,fri')
+#def sendLunchOptionsTask():
+#    sendLunchOptions()
 
-@scheduler.task('cron', id='send_order_summary', minute=15, hour=11, day_of_week='mon,tue,wed,thu,fri')
-def sendOrderSummaryTask():
-    sendOrderSummary()
-    updateDishWeights()
+#@scheduler.task('cron', id='send_order_summary', minute=15, hour=11, day_of_week='mon,tue,wed,thu,fri')
+#def sendOrderSummaryTask():
+#    sendOrderSummary()
+#    updateDishWeights()
 
 @scheduler.task('cron', id='propose_restaurant_schedule', minute=0, hour=4, day_of_week="Sun")
 def proposeRestaurantScheduleTask():
@@ -192,7 +192,7 @@ def addDish(dish_name, user, restaurant, confirm_choice):
     db.session.add(dish)
     db.session.commit()
     db.session.add(UserDishWeight(user_id=user.id, dish_id=dish.id))
-    db.session.add()
+    db.session.commit()
     if confirm_choice:
         confirmUserChoice(user.id, dish.id)
 
@@ -270,7 +270,7 @@ def selectOrderer(date=None):
 
     highest_user = None
     highest_ratio = 0.0
-    for user in getActiveUsers():
+    for user in potential_users:
         ratio = user_choices.get(user.id, 0) / user_orders.get(user.id, 0.1)
         if ratio >= highest_ratio:
             highest_user = user
@@ -365,6 +365,9 @@ def test():
         elif 'send_order_summary_michael' in flask.request.form.keys():
             user = User.query.filter_by(last_name='Scherbela').first()
             sendOrderSummary(user)
+        elif 'send_slack_lukas' in flask.request.form.keys():
+            user = User.query.filter_by(last_name='Liehr').first()
+            sendLunchProposal(user)
         elif 'send_order_summary' in flask.request.form.keys():
             sendOrderSummary()
         elif 'update_dish_weights' in flask.request.form.keys():
