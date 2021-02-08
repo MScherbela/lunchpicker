@@ -2,6 +2,15 @@ import requests
 import json
 import os
 import copy
+import logging
+
+logger = logging.getLogger()
+
+with open('slack_lock.txt') as f:
+    if 'lock' in f.read().lower():
+        SLACK_LOCKED = True
+    else:
+        SLACK_LOCKED = False
 
 with open('slack_templates/lunch_options.json') as f:
     LUNCH_OPTIONS_TEMPLATE = json.load(f)
@@ -21,17 +30,23 @@ def loadMessage():
         data = json.load(f)
     return data
 
-def sendMessage(channel, msg, token, text=None):
+def sendMessageToChannel(channel, msg, token, text=None):
+    if SLACK_LOCKED and channel not in ('U01BM5PTL3G', 'G01KRNNN44T'):
+        logger.warning(f"Sending of slack messages has been disabled, but the bot tried to send a message to channel {channel}")
+        return
+
     url = 'https://slack.com/api/chat.postMessage'
     data = dict(token=token, channel=channel, blocks=json.dumps(msg['blocks']))
     if text is not None:
         data['text'] = text
-    #if channel == 'U01BM5PTL3G':
-    #    r = requests.post(url, data=data)
-    #else:
-    #    raise ValueError("Warning: Sending of messages disabled")
     r = requests.post(url, data=data)
     return r
+
+def sendMessageToUser(user, msg, token, text=None):
+    if user.active:
+        sendMessageToChannel(user.slack_id, msg, token, text)
+    else:
+        logger.warning(f"Tried to send message to inactive user: {user.id}, {user.get_full_name()}. Message has NOT been sent")
 
 def sendLunchOptionsMessage(user, restaurant, possible_dishes, proposed_dish, token):
     msg = copy.deepcopy(LUNCH_OPTIONS_TEMPLATE)
@@ -42,16 +57,16 @@ def sendLunchOptionsMessage(user, restaurant, possible_dishes, proposed_dish, to
     if restaurant.name == 'Pasta Day':
         msg['blocks'][3]['elements'] = msg['blocks'][3]['elements'][:2] # remove something-else-button for Pasta day
     fallback_text = f"Hi {user.first_name}, we're getting lunch from {restaurant.name}. What do you want?"
-    return sendMessage(user.slack_id, msg, token, fallback_text)
+    return sendMessageToUser(user, msg, token, fallback_text)
 
 def sendLunchConfirmation(user, dish_name, token):
     msg = copy.deepcopy(LUNCH_CONFIRMATION_TEMPLATE)
     msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('DISH_PLACEHOLDER', dish_name)
-    return sendMessage(user.slack_id, msg, token, text="Order confirmed!")
+    return sendMessageToUser(user, msg, token, text="Order confirmed!")
 
 def sendLunchNoOrderConfirmation(user, token):
     msg = copy.deepcopy(LUNCH_NO_ORDER_CONFIRMATION_TEMPLATE)
-    return sendMessage(user.slack_id, msg, token, text="Ok, I'll not order for you.")
+    return sendMessageToUser(user, msg, token, text="Ok, I'll not order for you.")
 
 def sendOrderSummary(user, order_list, restaurant_name, token):
     """order_list ist a list of tuples, containing (dish_name, user_name)"""
@@ -61,7 +76,7 @@ def sendOrderSummary(user, order_list, restaurant_name, token):
 
     orders = [dict(value=str(i), text=dict(type="mrkdwn", text=f"*{o[0]}* ({o[1]})")) for i,o in enumerate(order_list)]
     msg['blocks'][3]['accessory']['options'] = orders
-    return sendMessage(user.slack_id, msg, token, text=f"Hi {user.first_name}, please take care of today's order!")
+    return sendMessageToUser(user, msg, token, text=f"Hi {user.first_name}, please take care of today's order!")
 
 def parseSlackRequestPayload(payload):
     user = getUserId(payload)

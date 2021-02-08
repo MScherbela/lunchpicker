@@ -1,4 +1,4 @@
-from app import db, proposeRestaurantSchedule, proposeOrdererSchedule
+from app import db, proposeRestaurantSchedule
 import os
 import json
 if os.path.isfile('/data/lunch.db'):
@@ -54,7 +54,6 @@ addUser('Lukas', 'Liehr', False, True)
 addUser('Martin', 'Rathmair', True, True)
 
 proposeRestaurantSchedule()
-proposeOrdererSchedule()
 
 for d in Dish.query.all():
     print(d)

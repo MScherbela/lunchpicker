@@ -1,163 +1,46 @@
+import logging
+
+try:
+    logging.basicConfig(filename='/data/lunchbot.log', level=logging.DEBUG,
+                        format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+except FileNotFoundError:
+    logging.basicConfig(filename='lunchbot.log', level=logging.DEBUG, format='%(asctime)s %(levelname)-8s %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S')
+logger = logging.getLogger()
+
 import flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_admin import Admin, AdminIndexView
-from flask_admin.contrib.sqla import ModelView
 import slack
 import json
-import logging
 import datetime
 import random
 import sqlalchemy.sql.functions
-from flask_basicauth import BasicAuth
-from werkzeug.exceptions import HTTPException
-from flask_apscheduler import APScheduler
-
-try:
-    logging.basicConfig(filename='/data/lunchbot.log', level=logging.DEBUG, format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-except FileNotFoundError:
-    logging.basicConfig(filename='lunchbot.log', level=logging.DEBUG, format='%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-logger = logging.getLogger()
+from extensions import *
+from models import *
 
 app = flask.Flask(__name__)
 app.config.from_pyfile('config.py')
 app.config.from_pyfile('instance/config.py')
-db = SQLAlchemy(app)
-basic_auth = BasicAuth(app)
-
 SLACK_BOT_TOKEN = app.config['SLACK_BOT_TOKEN']
 
-scheduler = APScheduler(app=app)
+admin.init_app(app)
+db.init_app(app)
+basic_auth.init_app(app)
+scheduler.init_app(app)
 scheduler.start()
 
-class UserDishWeight(db.Model):
-    __tablename__ = 'user_dish_weight'
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
-    dish_id = db.Column(db.Integer, db.ForeignKey('dish.id'), primary_key=True)
-    weight = db.Column(db.Float, default=1.0)
 
-class Restaurant(db.Model):
-    __tablename__ = 'restaurant'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(256), unique=True, nullable=False)
-    url = db.Column(db.String(256), unique=False)
-    description = db.Column(db.Text)
-    weight = db.Column(db.Float, default=1.0)
-    choices = db.relationship('RestaurantChoice', backref='restaurant')
-    dishes = db.relationship('Dish', backref='restaurant')
-    active = db.Column(db.Boolean, default=True)
-
-    def __repr__(self):
-        return self.name
-
-class User(db.Model):
-    __tablename__ = 'user'
-    id = db.Column(db.Integer, primary_key=True)
-    first_name = db.Column(db.String(256))
-    last_name = db.Column(db.String(256))
-    slack_id = db.Column(db.String(256))
-    active = db.Column(db.Boolean, default=True)
-    vegetarian = db.Column(db.Boolean, default=False)
-
-    def get_full_name(self):
-        return self.first_name + " " + self.last_name
-
-    def __repr__(self):
-        return f"{self.first_name} {self.last_name}"
-
-class Dish(db.Model):
-    __tablename__ = 'dish'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(256))
-    restaurant_id = db.Column(db.Integer, db.ForeignKey('restaurant.id'), nullable=False)
-    choices = db.relationship('DishChoice', backref='dish')
-    vegetarian = db.Column(db.Boolean, default=False)
-    is_default = db.Column(db.Boolean, default=False)
-
-    def __repr__(self):
-        return f"{self.name} ({self.restaurant})"
-
-class DishChoice(db.Model):
-    __tablename__ = 'dish_choice'
-    id = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.Date)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    dish_id = db.Column(db.Integer, db.ForeignKey('dish.id'))
-    status = db.Column(db.Integer, default=0)
-
-class RestaurantChoice(db.Model):
-    __tablename__ = 'restaurant_choice'
-    id = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.Date)
-    restaurant_id = db.Column(db.Integer, db.ForeignKey('restaurant.id'), nullable=False)
-
-    def __repr__(self):
-        return f"<RestaurantChoice: {self.date}, {self.restaurant_id}>"
-
-class OrdererChoice(db.Model):
-    __table_name__ = 'orderer_choice'
-    id = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.Date)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    status = db.Column(db.Integer, default=0)
-
-    def __repr__(self):
-        return f"<OrdererChoice: {self.date}, {self.user_id}; status: {self.status}>"
-
-class AuthException(HTTPException):
-    def __init__(self, message):
-        super().__init__(message, flask.Response(
-            "You could not be authenticated. Please refresh the page.", 401,
-            {'WWW-Authenticate': 'Basic realm="Login Required"'} ))
-
-class ProtectedModelView(ModelView):
-    def is_accessible(self):
-        if not basic_auth.authenticate():
-            raise AuthException('Not authenticated.')
-        return True
-
-    def inaccessible_callback(self, name, **kwargs):
-        return flask.redirect(basic_auth.challenge())
-
-class ProtectedAdminIndexView(AdminIndexView):
-    def is_accessible(self):
-        if not basic_auth.authenticate():
-            raise AuthException('Not authenticated.')
-        return True
-
-    def inaccessible_callback(self, name, **kwargs):
-        return flask.redirect(basic_auth.challenge())
-
-class UserView(ProtectedModelView):
-    column_hide_backrefs = False
-    column_list = ('first_name', 'last_name', 'dishes')
-
-class DishView(ProtectedModelView):
-    column_hide_backrefs = False
-    column_list = ('name', 'restaurant', 'users')
-
-class RestaurantView(ProtectedModelView):
-    column_hide_backrefs = False
-    column_list = ('name', 'url', 'description', 'rating', 'dishes')
-
-admin = Admin(app, name='lunch', template_mode='bootstrap3', index_view=ProtectedAdminIndexView())
-admin.add_view(UserView(User, db.session))
-admin.add_view(RestaurantView(Restaurant, db.session))
-admin.add_view(DishView(Dish, db.session))
-admin.add_view(ProtectedModelView(DishChoice, db.session))
-admin.add_view(ProtectedModelView(RestaurantChoice, db.session))
-admin.add_view(ProtectedModelView(OrdererChoice, db.session))
-admin.add_view(ProtectedModelView(UserDishWeight, db.session))
-
+# %% Scheduler tasks
 @scheduler.task('cron', id='heartbeat', minute=30, hour=8)
 def hearbeatTask():
     logger.debug("I'm still alive!")
 
-#@scheduler.task('cron', id='send_lunch_options', minute=45, hour=10, day_of_week='mon,tue,wed,thu,fri')
-#def sendLunchOptionsTask():
+
+# @scheduler.task('cron', id='send_lunch_options', minute=45, hour=10, day_of_week='mon,tue,wed,thu,fri')
+# def sendLunchOptionsTask():
 #    sendLunchOptions()
 
-#@scheduler.task('cron', id='send_order_summary', minute=15, hour=11, day_of_week='mon,tue,wed,thu,fri')
-#def sendOrderSummaryTask():
+# @scheduler.task('cron', id='send_order_summary', minute=15, hour=11, day_of_week='mon,tue,wed,thu,fri')
+# def sendOrderSummaryTask():
 #    sendOrderSummary()
 #    updateDishWeights()
 
@@ -165,27 +48,53 @@ def hearbeatTask():
 def proposeRestaurantScheduleTask():
     proposeRestaurantSchedule()
 
-def updateDishWeights():
-    """Calculate dish preferences based on order history"""
-    for user in User.query.all():
-        weights = UserDishWeight.query.filter_by(user_id=user.id).all()
-        for w in weights:
-            n_orders = DishChoice.query.filter_by(user_id=user.id, dish_id=w.dish_id, status=1).count()
-            w.weight = n_orders + 0.1
+
+# %% Getter Methods
+def getUsersWithConfirmedOrder(date=None):
+    if date is None:
+        date = datetime.date.today()
+    return db.session.query(User).filter(
+        User.id == DishChoice.user_id).filter(
+        DishChoice.date == date).filter(
+        DishChoice.status == 1).all()
+
+
+def getActiveUsers():
+    return User.query.filter_by(active=True).all()
+
+
+def getActiveRestaurants():
+    return Restaurant.query.filter_by(active=True).all()
+
+
+def getTodaysRestaurant():
+    today = datetime.date.today()
+    restaurant_choice = RestaurantChoice.query.filter_by(date=today).first()
+    if restaurant_choice is None:
+        return None
+    else:
+        return restaurant_choice.restaurant
+
+
+def getPossibleDishes(user, restaurant):
+    return db.session.query(Dish).filter(UserDishWeight.user_id == user.id).filter(
+        Dish.restaurant_id == restaurant.id).all()
+
+
+# %% Setter Methods
+def addUserIfNotExists(user_data):
+    if User.query.filter_by(slack_id=user_data['id']).first() is not None:
+        return
+    first, last = user_data['name'].split('.')
+    user = User(first_name=first.title(), last_name=last.title(), slack_id=user_data['id'], active=True)
+    db.session.add(user)
     db.session.commit()
 
-def sendLunchOptions():
-    active_users = getActiveUsers()
-    for user in active_users:
-        logger.info(f"Sending lunch-options to {user}")
-        print(sendLunchProposal(user))
-    return len(active_users)
+    default_dishes = Dish.query.filter_by(default=True).all()
+    for d in default_dishes:
+        db.session.add(UserDishWeight(user_id=user.id, dish_id=d.id, weight=0.1))
+    db.session.commit()
 
-def proposeRestaurantSchedule():
-    for d in range(7):
-        date = datetime.date.today() + datetime.timedelta(days=d)
-        if date.weekday() < 5: # Mo-Fr
-            selectRestaurantRandomly(date)
 
 def addDish(dish_name, user, restaurant, confirm_choice):
     dish = Dish(name=dish_name, restaurant_id=restaurant.id)
@@ -194,7 +103,8 @@ def addDish(dish_name, user, restaurant, confirm_choice):
     db.session.add(UserDishWeight(user_id=user.id, dish_id=dish.id))
     db.session.commit()
     if confirm_choice:
-        confirmUserChoice(user.id, dish.id)
+        setUserChoice(user.id, dish.id)
+
 
 def setRestaurantSchedule(date, restaurant_id):
     choice = RestaurantChoice.query.filter_by(date=date).first()
@@ -208,47 +118,76 @@ def setRestaurantSchedule(date, restaurant_id):
     db.session.commit()
     selectDishesRandomly(Restaurant.query.get(restaurant_id), date)
 
-def sendOrderSummary(responsible_user=None):
-    date = datetime.date.today()
-    orders = db.session.query(Dish, User).filter(
-        DishChoice.dish_id == Dish.id).filter(
-        DishChoice.user_id == User.id).filter(
-        DishChoice.date == date).filter(
-        DishChoice.status == 1).order_by(Dish.name).all()
-    orders = [(o[0].name, o[1].first_name) for o in orders]
-    if len(orders) == 0:
-        return
 
-    if responsible_user is None:
-        responsible_user = selectOrderer(date)
-    slack.sendOrderSummary(responsible_user, orders, getTodaysRestaurant().name, SLACK_BOT_TOKEN)
-    logger.info(f"Sent lunch order summary to: {responsible_user.first_name}")
+def updateDishWeights():
+    """Calculate dish preferences based on order history"""
+    for user in User.query.all():
+        weights = UserDishWeight.query.filter_by(user_id=user.id).all()
+        for w in weights:
+            n_orders = DishChoice.query.filter_by(user_id=user.id, dish_id=w.dish_id, status=1).count()
+            w.weight = n_orders + 0.1
+    db.session.commit()
 
-def getActiveUsers():
-    return User.query.filter_by(active=True).all()
 
-def getUsersWithConfirmedOrder(date=None):
+def setUserChoice(user_id, dish_id):
+    today = datetime.date.today()
+    DishChoice.query.filter_by(date=today, user_id=user_id).delete()
+    db.session.add(DishChoice(date=today, user_id=user_id, dish_id=dish_id, status=2 if dish_id is None else 1))
+    db.session.commit()
+
+
+# %% Voting / Selecting logic
+def voteForRestaurant(restaurant_id, user_id, date, weight=None):
+    if weight is None:
+        weight = 0.1 if user_id is None else 1.0
+
+    RestaurantVote.query.filter_by(restaurant_id=restaurant_id, user_id=user_id, date=date).delete()
+    db.session.add(RestaurantVote(restaurant_id=restaurant_id, user_id=user_id, date=date, weight=weight))
+    db.session.commit()
+
+
+def castBotVoteForRestaurant(date=None):
     if date is None:
         date = datetime.date.today()
-    return db.session.query(User).filter(
-        User.id == DishChoice.user_id).filter(
-        DishChoice.date==date).filter(
-        DishChoice.status == 1).all()
-
-def getActiveRestaurants():
-    return Restaurant.query.filter_by(active=True).all()
-
-def getTodaysRestaurant(date=None):
-    if date is None:
-        date = datetime.date.today()
-    restaurant_choice = RestaurantChoice.query.filter_by(date=date).first()
-    if restaurant_choice is None:
-        return selectRestaurantRandomly(date)
+    if date.weekday() == 2:  # Wednesday
+        r = Restaurant.query.filter_by(name='Pasta Day').first()
     else:
-        return restaurant_choice.restaurant
+        latest_restaurants = db.session.query(Restaurant.id).filter(
+            Restaurant.id == RestaurantChoice.restaurant_id).filter(
+            RestaurantChoice.date >= date - datetime.timedelta(days=2)).filter(
+            RestaurantChoice.date < date).all()
+        blacklist = set(r[0] for r in latest_restaurants)
+        blacklist.add(Restaurant.query.filter_by(name='Pasta Day').first().id)
+        active_restaurants = Restaurant.query.filter_by(active=True).all()
+        active_restaurants = [r for r in active_restaurants if r.id not in blacklist]
+        weights = [r.weight for r in active_restaurants]
+        r = random.choices(active_restaurants, weights, k=1)[0]
 
-def is_valid_slack_request(payload):
-    return payload['token'] == app.config['SLACK_REQUEST_TOKEN']
+    weight = 10.0 if (r.name == 'Pasta Day') else 0.1
+    voteForRestaurant(r.id, None, date, weight)
+    return r
+
+
+def proposeRestaurantSchedule():
+    for d in range(7):
+        date = datetime.date.today() + datetime.timedelta(days=d)
+        if date.weekday() < 5:  # Mo-Fr
+            castBotVoteForRestaurant(date)
+
+
+def selectRestaurant(date):
+    castBotVoteForRestaurant(date)  # ensure that there is at least 1 vote
+    restaurant_id = db.session.query(RestaurantVote.restaurant_id).filter(
+        RestaurantVote.date == date).group_by(
+        RestaurantVote.restaurant_id).order_by(
+        sqlalchemy.sql.func.sum(RestaurantVote.weight)).last()[0]
+    restaurant = Restaurant.query.get(restaurant_id)
+
+    RestaurantChoice.query.filter_by(date=date).delete()
+    db.session.add(RestaurantChoice(date=date, restaurant_id=restaurant_id))
+    db.sesson.commit()
+    selectDishesRandomly(restaurant, date)
+    return restaurant
 
 
 def selectOrderer(date=None):
@@ -262,11 +201,11 @@ def selectOrderer(date=None):
         User.id == DishChoice.user_id).filter(
         DishChoice.date < date).filter(
         DishChoice.status == 1).group_by(User.id).all()
-    user_choices = {r[0]:r[1] for r in user_choices}
+    user_choices = {r[0]: r[1] for r in user_choices}
     user_orders = db.session.query(User.id, sqlalchemy.sql.functions.count(OrdererChoice.date)).filter(
         User.id == OrdererChoice.user_id).filter(
         OrdererChoice.date < date).group_by(User.id).all()
-    user_orders = {r[0]:r[1] for r in user_orders}
+    user_orders = {r[0]: r[1] for r in user_orders}
 
     highest_user = None
     highest_ratio = 0.0
@@ -281,37 +220,6 @@ def selectOrderer(date=None):
     db.session.commit()
     return highest_user
 
-def selectRestaurantRandomly(date=None):
-    if date is None:
-        date = datetime.date.today()
-    if date.weekday() == 2: # Wednesday
-        r = Restaurant.query.filter_by(name='Pasta Day').first()
-    else:
-        latest_restaurants = db.session.query(Restaurant.id).filter(
-            Restaurant.id == RestaurantChoice.restaurant_id).filter(
-            RestaurantChoice.date >= date - datetime.timedelta(days=2)).filter(
-            RestaurantChoice.date < date).all()
-        blacklist = set(r[0] for r in latest_restaurants)
-        blacklist.add(Restaurant.query.filter_by(name='Pasta Day').first().id)
-        active_restaurants = Restaurant.query.filter_by(active=True).all()
-        active_restaurants = [r for r in active_restaurants if r.id not in blacklist]
-        weights = [r.weight for r in active_restaurants]
-        r = random.choices(active_restaurants, weights, k=1)[0]
-
-    RestaurantChoice.query.filter_by(date=date).delete()
-    db.session.add(RestaurantChoice(date=date, restaurant_id=r.id))
-    db.session.commit()
-    selectDishesRandomly(r, date)
-    return r
-
-def confirmUserChoice(user_id, dish_id):
-    today = datetime.date.today()
-    DishChoice.query.filter_by(date=today, user_id=user_id).delete()
-    db.session.add(DishChoice(date=today, user_id=user_id, dish_id=dish_id, status=2 if dish_id is None else 1))
-    db.session.commit()
-
-def getPossibleDishes(user, restaurant):
-    return db.session.query(Dish).filter(UserDishWeight.user_id==user.id).filter(Dish.restaurant_id == restaurant.id).all()
 
 def selectDishesRandomly(restaurant, date=None):
     if date is None:
@@ -332,6 +240,12 @@ def selectDishesRandomly(restaurant, date=None):
         db.session.add(DishChoice(user_id=user.id, dish_id=dish_id, date=date))
     db.session.commit()
 
+
+# %% Slack communication
+def is_valid_slack_request(payload):
+    return payload['token'] == app.config['SLACK_REQUEST_TOKEN']
+
+
 def sendLunchProposal(user):
     restaurant = getTodaysRestaurant()
 
@@ -340,14 +254,42 @@ def sendLunchProposal(user):
         DishChoice.user_id == user.id).filter(
         DishChoice.date == datetime.date.today()).filter(
         Dish.id == DishChoice.dish_id).first()
-    return slack.sendLunchOptionsMessage(user, restaurant, possible_dishes, proposed_dish, app.config['SLACK_BOT_TOKEN'])
+    return slack.sendLunchOptionsMessage(user, restaurant, possible_dishes, proposed_dish,
+                                         app.config['SLACK_BOT_TOKEN'])
 
+
+def sendLunchProposalToAll():
+    active_users = getActiveUsers()
+    for user in active_users:
+        logger.info(f"Sending lunch-options to {user}")
+        print(sendLunchProposal(user))
+    return len(active_users)
+
+
+def sendOrderSummary(responsible_user=None):
+    date = datetime.date.today()
+    orders = db.session.query(Dish, User).filter(
+        DishChoice.dish_id == Dish.id).filter(
+        DishChoice.user_id == User.id).filter(
+        DishChoice.date == date).filter(
+        DishChoice.status == 1).order_by(Dish.name).all()
+    orders = [(o[0].name, o[1].first_name) for o in orders]
+    if len(orders) == 0:
+        return
+
+    if responsible_user is None:
+        responsible_user = selectOrderer(date)
+    slack.sendOrderSummary(responsible_user, orders, getTodaysRestaurant().name, SLACK_BOT_TOKEN)
+    logger.info(f"Sent lunch order summary to: {responsible_user.first_name}")
+
+
+# %% Views
 @app.route('/test', methods=['GET', 'POST'])
 @basic_auth.required
 def test():
     if flask.request.method == 'POST':
         if 'choose_restaurant' in flask.request.form.keys():
-            selectRestaurantRandomly()
+            selectRestaurant()
             return flask.redirect('/')
         elif 'choose_5_restaurants' in flask.request.form.keys():
             proposeRestaurantSchedule()
@@ -357,7 +299,7 @@ def test():
             r = sendLunchProposal(user)
             return r.text
         elif 'send_active' in flask.request.form.keys():
-            n = sendLunchOptions()
+            n = sendLunchProposalToAll()
             flask.flash(f"Messages sent to {n} people")
         elif 'send_confirmation' in flask.request.form.keys():
             user = User.query.filter_by(last_name='Scherbela').first()
@@ -375,6 +317,7 @@ def test():
         else:
             return "Unknown request"
     return flask.render_template('test.html')
+
 
 @app.route('/schedule', methods=['GET', 'POST'])
 @basic_auth.required
@@ -394,15 +337,18 @@ def schedule():
 
     return flask.render_template("schedule.html", table_rows=table_rows)
 
+
 @app.route('/')
 # No basic auth for index view, since no sensitive data (beyond names)
 def index():
     restaurant = getTodaysRestaurant()
+    if restaurant is None:
+        return flask.render_template('index_undecided.html')
 
     choices = db.session.query(User, DishChoice
-                     ).filter(User.active==True
-                     ).filter(User.id == DishChoice.user_id
-                     ).filter(DishChoice.date == datetime.date.today()).all()
+                               ).filter(User.active == True
+                                        ).filter(User.id == DishChoice.user_id
+                                                 ).filter(DishChoice.date == datetime.date.today()).all()
 
     table_rows = []
     confirmed_ids = set()
@@ -418,10 +364,13 @@ def index():
     return flask.render_template('index.html', table_rows=table_rows,
                                  restaurant=restaurant.name)
 
+
 @app.route('/profile/<user_id>', methods=['GET', 'POST'])
 # No basic auth right now for UX-reasons
 def profile(user_id):
     restaurant = getTodaysRestaurant()
+    if restaurant is None:
+        return flask.render_template('index_undecided.html')
     user = User.query.get(user_id)
     if flask.request.method == 'POST':
         dish_name = flask.request.form['dish_name']
@@ -429,7 +378,8 @@ def profile(user_id):
             addDish(dish_name, user, restaurant, confirm_choice=True)
             flask.flash(f"Added dish {dish_name} and selected it for today")
             slack.sendLunchConfirmation(user, dish_name, SLACK_BOT_TOKEN)
-    return flask.render_template('profile.html', user_name = user.first_name, restaurant=restaurant.name)
+    return flask.render_template('profile.html', user_name=user.first_name, restaurant=restaurant.name)
+
 
 @app.route('/api', methods=['POST'])
 # No basic auth, because needs to be reachable by slack, but checking for valid token
@@ -437,16 +387,19 @@ def api():
     payload = json.loads(flask.request.values['payload'])
     if not is_valid_slack_request(payload):
         return "Not authorized", 401
+    if 'user' in payload:
+        addUserIfNotExists(payload['user'])
     result = slack.parseSlackRequestPayload(payload)
     user = User.query.filter_by(slack_id=result['user']).first()
     logger.info(f"Received api request from user {user.get_full_name()}")
     if result['button'] == 'yes':
-        confirmUserChoice(user.id, result['dish_id'])
+        setUserChoice(user.id, result['dish_id'])
         slack.sendLunchConfirmation(user, Dish.query.get(result['dish_id']).name, SLACK_BOT_TOKEN)
     elif result['button'] == 'no':
-        confirmUserChoice(user.id, None)
+        setUserChoice(user.id, None)
         slack.sendLunchNoOrderConfirmation(user, SLACK_BOT_TOKEN)
     return ""
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=80)
