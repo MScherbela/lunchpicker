@@ -137,7 +137,9 @@ def setUserChoice(user_id, dish_id):
 
 
 # %% Voting / Selecting logic
-def voteForRestaurant(restaurant_id, user_id, date, weight=None):
+def voteForRestaurant(restaurant_id, user_id, date=None, weight=None):
+    if date is None:
+        date = datetime.date.today()
     if weight is None:
         weight = 0.1 if user_id is None else 1.0
 
@@ -303,11 +305,15 @@ def sendOrderSummary(responsible_user=None):
 #%% Actions in response to slack requests
 
 def action_subscribe(payload, user):
-    pass
+    user.active = True
+    db.session.commit()
+    logger.info(f"User {user.get_full_name()} has been activated.")
 
 
 def action_unsubscribe(payload, user):
-    pass
+    user.active = False
+    db.session.commit()
+    logger.info(f"User {user.get_full_name()} has been deactivated.")
 
 
 def action_select_dish(payload, user):
@@ -322,8 +328,10 @@ def action_decline_dish(payload, user):
 
 
 def action_cast_restaurant_vote(payload, user):
-    pass
-    # voteForRestaurant()
+    restaurant_id = int(payload['state']['values']['voting']['ignore_select_restaurant']['selected_option']["value"])
+    voteForRestaurant(restaurant_id, user.id)
+    restaurant = Restaurant.query.get(restaurant_id)
+    logger.info(f"{user.first_name} voted for {restaurant.name}")
 
 ACTION_CALLBACKS = dict(subscribe=action_subscribe, unsubscribe=action_unsubscribe, select_dish=action_select_dish,
                         decline_dish=action_decline_dish, cast_restaurant_vote=action_cast_restaurant_vote)

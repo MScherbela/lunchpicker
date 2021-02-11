@@ -9,13 +9,14 @@
 		},
 		{
 			"type": "actions",
+			"block_id": "voting",
 			"elements": [
 				{
 					"type": "static_select",
+					"action_id": "ignore_select_restaurant",
 					"placeholder": {
 						"type": "plain_text",
 						"text": "Select an item",
-						"emoji": true
 					},
 					"options": [
 						{
