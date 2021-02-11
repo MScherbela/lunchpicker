@@ -5,6 +5,8 @@ class UserDishWeight(db.Model):
     __tablename__ = 'user_dish_weight'
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     dish_id = db.Column(db.Integer, db.ForeignKey('dish.id'), primary_key=True)
+    user = db.relationship('User')
+    dish = db.relationship('Dish')
     weight = db.Column(db.Float, default=1.0)
 
 
@@ -15,7 +17,6 @@ class Restaurant(db.Model):
     url = db.Column(db.String(256), unique=False)
     description = db.Column(db.Text)
     weight = db.Column(db.Float, default=1.0)
-    choices = db.relationship('RestaurantChoice', backref='restaurant')
     dishes = db.relationship('Dish', backref='restaurant')
     active = db.Column(db.Boolean, default=True)
 
@@ -44,7 +45,6 @@ class Dish(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(256))
     restaurant_id = db.Column(db.Integer, db.ForeignKey('restaurant.id'), nullable=False)
-    choices = db.relationship('DishChoice', backref='dish')
     vegetarian = db.Column(db.Boolean, default=False)
     is_default = db.Column(db.Boolean, default=False)
 
@@ -58,6 +58,8 @@ class DishChoice(db.Model):
     date = db.Column(db.Date)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     dish_id = db.Column(db.Integer, db.ForeignKey('dish.id'))
+    user = db.relationship('User')
+    dish = db.relationship('Dish')
     status = db.Column(db.Integer, default=0)
 
 
@@ -66,6 +68,7 @@ class RestaurantChoice(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date)
     restaurant_id = db.Column(db.Integer, db.ForeignKey('restaurant.id'), nullable=False)
+    restaurant = db.relationship('Restaurant')
 
     def __repr__(self):
         return f"<RestaurantChoice: {self.date}, {self.restaurant_id}>"
@@ -76,6 +79,7 @@ class OrdererChoice(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user = db.relationship('User', )
     status = db.Column(db.Integer, default=0)
 
     def __repr__(self):
@@ -88,4 +92,6 @@ class RestaurantVote(db.Model):
     date = db.Column(db.Date)
     restaurant_id = db.Column(db.Integer, db.ForeignKey('restaurant.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    restaurant = db.relationship('Restaurant')
+    user = db.relationship('User')
     weight = db.Column(db.Float, default=1.0)

@@ -9,7 +9,7 @@
 		},
 		{
 			"type": "section",
-			"block_id": "selection_section",
+			"block_id": "dish_selection_section",
 			"text": {
 				"type": "mrkdwn",
 				"text": "Your choice:"
@@ -18,8 +18,7 @@
 				"type": "static_select",
 				"placeholder": {
 					"type": "plain_text",
-					"text": "Proposed dish:",
-					"emoji": true
+					"text": "Proposed dish:"
 				},
 				"options": [
 					{
@@ -61,7 +60,8 @@
 						"text": "Order"
 					},
 					"style": "primary",
-					"value": "yes"
+					"value": "yes",
+					"action_id": "select_dish"
 				},
 				{
 					"type": "button",
@@ -70,7 +70,8 @@
 						"text": "Don't order for me"
 					},
 					"style": "danger",
-					"value": "no"
+					"value": "no",
+					"action_id": "decline_dish"
 				},
 				{
 					"type": "button",
@@ -79,6 +80,7 @@
 						"text": "I want something else"
 					},
 					"value": "other",
+					"action_id": "none",
 					"url": "https://lunchbot.scherbela.com"
 				}
 			]

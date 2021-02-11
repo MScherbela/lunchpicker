@@ -83,18 +83,18 @@ def getPossibleDishes(user, restaurant):
 
 # %% Setter Methods
 def addUserIfNotExists(user_data):
-    if User.query.filter_by(slack_id=user_data['id']).first() is not None:
-        return
-    first, last = user_data['name'].split('.')
-    user = User(first_name=first.title(), last_name=last.title(), slack_id=user_data['id'], active=True)
-    db.session.add(user)
-    db.session.commit()
+    user = User.query.filter_by(slack_id=user_data['id']).first()
+    if user is None
+        first, last = user_data['name'].split('.')
+        user = User(first_name=first.title(), last_name=last.title(), slack_id=user_data['id'], active=True)
+        db.session.add(user)
+        db.session.commit()
 
-    default_dishes = Dish.query.filter_by(default=True).all()
-    for d in default_dishes:
-        db.session.add(UserDishWeight(user_id=user.id, dish_id=d.id, weight=0.1))
-    db.session.commit()
-
+        default_dishes = Dish.query.filter_by(default=True).all()
+        for d in default_dishes:
+            db.session.add(UserDishWeight(user_id=user.id, dish_id=d.id, weight=0.1))
+        db.session.commit()
+    return user
 
 def addDish(dish_name, user, restaurant, confirm_choice):
     dish = Dish(name=dish_name, restaurant_id=restaurant.id)
@@ -175,16 +175,21 @@ def proposeRestaurantSchedule():
             castBotVoteForRestaurant(date)
 
 
-def selectRestaurant(date):
-    castBotVoteForRestaurant(date)  # ensure that there is at least 1 vote
-    restaurant_id = db.session.query(RestaurantVote.restaurant_id).filter(
-        RestaurantVote.date == date).group_by(
+def getLeadingRestaurant(date):
+    restaurant = db.session.query(RestaurantVote.restaurant).filter(
+        RestaurantVote.date == date).filter(
+        Restaurant.active == True).group_by(
         RestaurantVote.restaurant_id).order_by(
         sqlalchemy.sql.func.sum(RestaurantVote.weight)).last()[0]
-    restaurant = Restaurant.query.get(restaurant_id)
+    return restaurant
+
+
+def selectRestaurant(date):
+    castBotVoteForRestaurant(date)  # ensure that there is at least 1 vote
+    restaurant = getLeadingRestaurant(date)
 
     RestaurantChoice.query.filter_by(date=date).delete()
-    db.session.add(RestaurantChoice(date=date, restaurant_id=restaurant_id))
+    db.session.add(RestaurantChoice(date=date, restaurant_id=restaurant.id))
     db.sesson.commit()
     selectDishesRandomly(restaurant, date)
     return restaurant
@@ -246,6 +251,13 @@ def is_valid_slack_request(payload):
     return payload['token'] == app.config['SLACK_REQUEST_TOKEN']
 
 
+def sendRestaurantOptions():
+    date = datetime.date.today()
+    restaurants = getActiveRestaurants()
+    leading_restaurant = getTodaysRestaurant(date)
+    slack.sendRestaurantOptionsMessage(restaurants, leading_restaurant, SLACK_BOT_TOKEN)
+
+
 def sendLunchProposal(user):
     restaurant = getTodaysRestaurant()
 
@@ -283,6 +295,38 @@ def sendOrderSummary(responsible_user=None):
     logger.info(f"Sent lunch order summary to: {responsible_user.first_name}")
 
 
+#%% Actions in response to slack requests
+
+def action_subscribe(payload, user):
+    pass
+
+
+def action_unsubscribe(payload, user):
+    pass
+
+
+def action_select_dish(payload, user):
+    dish_id = int(payload['state']['values']['dish_selection_section']['static_select-action']['selected_option']["value"])
+    setUserChoice(user.id, dish_id)
+    slack.sendLunchConfirmation(user, Dish.query.get(dish_id).name, SLACK_BOT_TOKEN)
+
+
+def action_decline_dish(payload, user):
+    setUserChoice(user.id, None)
+    slack.sendLunchNoOrderConfirmation(user, SLACK_BOT_TOKEN)
+
+
+def action_cast_restaurant_vote(payload, user):
+    pass
+    # voteForRestaurant()
+
+ACTION_CALLBACKS = dict(subscribe=action_subscribe, unsubscribe=action_unsubscribe, select_dish=action_select_dish,
+                        decline_dish=action_decline_dish, cast_restaurant_vote=action_cast_restaurant_vote)
+
+def savePayloadForDebugging(payload):
+    with open('/data/request.json', 'w') as f:
+        json.dump(payload, f, indent=4)
+
 # %% Views
 @app.route('/test', methods=['GET', 'POST'])
 @basic_auth.required
@@ -314,6 +358,8 @@ def test():
             sendOrderSummary()
         elif 'update_dish_weights' in flask.request.form.keys():
             updateDishWeights()
+        elif 'send_restaurant_options_michael' in flask.request.form.keys():
+            sendRestaurantOptions()
         else:
             return "Unknown request"
     return flask.render_template('test.html')
@@ -336,7 +382,6 @@ def schedule():
         table_rows.append(dict(date=choice.date, restaurants=restaurant_options))
 
     return flask.render_template("schedule.html", table_rows=table_rows)
-
 
 @app.route('/')
 # No basic auth for index view, since no sensitive data (beyond names)
@@ -385,19 +430,18 @@ def profile(user_id):
 # No basic auth, because needs to be reachable by slack, but checking for valid token
 def api():
     payload = json.loads(flask.request.values['payload'])
+    savePayloadForDebugging(payload)
     if not is_valid_slack_request(payload):
         return "Not authorized", 401
-    if 'user' in payload:
-        addUserIfNotExists(payload['user'])
-    result = slack.parseSlackRequestPayload(payload)
-    user = User.query.filter_by(slack_id=result['user']).first()
+    user = addUserIfNotExists(payload['user'])
     logger.info(f"Received api request from user {user.get_full_name()}")
-    if result['button'] == 'yes':
-        setUserChoice(user.id, result['dish_id'])
-        slack.sendLunchConfirmation(user, Dish.query.get(result['dish_id']).name, SLACK_BOT_TOKEN)
-    elif result['button'] == 'no':
-        setUserChoice(user.id, None)
-        slack.sendLunchNoOrderConfirmation(user, SLACK_BOT_TOKEN)
+    for action_id in payload.get('actions', ()):
+        logger.info(f"User: {user.get_full_name()}, Action: {action_id}")
+        callback = ACTION_CALLBACKS.get(action_id, None)
+        if callback is not None:
+            result = callback(payload, user)
+            result = "" if result is None else result
+            return result
     return ""
 
 

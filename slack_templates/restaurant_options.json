@@ -1,0 +1,84 @@
+{
+	"blocks": [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Hey, how about lunch from *RESTAURANT_PLACEHOLDER* today?\nIf you want something else, please cast a vote, or check the <https://lunchbot.scherbela.com|lunchbot website> for the current vote count."
+			}
+		},
+		{
+			"type": "actions",
+			"elements": [
+				{
+					"type": "static_select",
+					"placeholder": {
+						"type": "plain_text",
+						"text": "Select an item",
+						"emoji": true
+					},
+					"options": [
+						{
+							"text": {
+								"type": "plain_text",
+								"text": "*this is plain_text text*"
+							},
+							"value": "value-0"
+						}
+					],
+					"initial_option": {
+						"text": {
+							"type": "plain_text",
+							"text": "*this is plain_text text*"
+						},
+						"value": "value-0"
+					}
+				},
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Cast vote"
+					},
+					"value": "button_vote",
+					"action_id": "castRestaurantVote"
+				}
+			]
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "If you want to join or unsubscribe from the lunchbot, please click below."
+			}
+		},
+		{
+			"type": "actions",
+			"elements": [
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Join us"
+					},
+					"style": "primary",
+					"value": "button_subscribe",
+					"action_id": "subscribe"
+				},
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Unsubscribe"
+					},
+					"style": "danger",
+					"value": "button_unsubscribe",
+					"action_id": "unsubscribe"
+				}
+			]
+		}
+	]
+}

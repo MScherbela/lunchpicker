@@ -12,17 +12,12 @@ with open('slack_lock.txt') as f:
     else:
         SLACK_LOCKED = False
 
-with open('slack_templates/lunch_options.json') as f:
-    LUNCH_OPTIONS_TEMPLATE = json.load(f)
-
-with open('slack_templates/lunch_confirmation.json') as f:
-    LUNCH_CONFIRMATION_TEMPLATE = json.load(f)
-
-with open('slack_templates/lunch_no_order_confirmation.json') as f:
-    LUNCH_NO_ORDER_CONFIRMATION_TEMPLATE = json.load(f)
-
-with open('slack_templates/order_summary.json') as f:
-    LUNCH_ORDER_SUMMARY_TEMPLATE = json.load(f)
+MESSAGE_TEMPLATES = {}
+for fname in os.listdir('slack_templates'):
+    if fname.endswith('.json'):
+        key = fname[:-5]
+        with open(f'slack_templates/{fname}') as f:
+            MESSAGE_TEMPLATES[key] = json.load(f)
 
 def loadMessage():
     print(os.getcwd())
@@ -48,8 +43,9 @@ def sendMessageToUser(user, msg, token, text=None):
     else:
         logger.warning(f"Tried to send message to inactive user: {user.id}, {user.get_full_name()}. Message has NOT been sent")
 
+
 def sendLunchOptionsMessage(user, restaurant, possible_dishes, proposed_dish, token):
-    msg = copy.deepcopy(LUNCH_OPTIONS_TEMPLATE)
+    msg = copy.deepcopy(MESSAGE_TEMPLATES['lunch_options'])
     msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('RESTAURANT_PLACEHOLDER', restaurant.name).replace('NAME_PLACEHOLDER', user.first_name)
     msg['blocks'][1]['accessory']['options'] = [dict(text=dict(type='plain_text', text=d.name), value=str(d.id)) for d in possible_dishes]
     msg['blocks'][1]['accessory']['initial_option'] = dict(text=dict(type='plain_text', text=proposed_dish.name), value=str(proposed_dish.id))
@@ -59,18 +55,29 @@ def sendLunchOptionsMessage(user, restaurant, possible_dishes, proposed_dish, to
     fallback_text = f"Hi {user.first_name}, we're getting lunch from {restaurant.name}. What do you want?"
     return sendMessageToUser(user, msg, token, fallback_text)
 
+
+def sendRestaurantOptionsMessage(restaurants, leading_restaurant, token):
+    msg = copy.deepcopy(MESSAGE_TEMPLATES['restaurant_options'])
+    msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('RESTAURANT_PLACEHOLDER', leading_restaurant.name)
+    msg['blocks'][1]['accessory']['options'] = [dict(text=dict(type='plain_text', text=r.name), value=str(r.id)) for r in restaurants]
+    msg['blocks'][1]['accessory']['initial_option'] = dict(text=dict(type='plain_text', text=leading_restaurant.name), value=str(leading_restaurant.id))
+    return sendMessageToChannel('G01KRNNN44T', msg, token, f"How about lunch from {leading_restaurant.name}?")
+
+
 def sendLunchConfirmation(user, dish_name, token):
-    msg = copy.deepcopy(LUNCH_CONFIRMATION_TEMPLATE)
+    msg = copy.deepcopy(MESSAGE_TEMPLATES['lunch_confirmation'])
     msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('DISH_PLACEHOLDER', dish_name)
     return sendMessageToUser(user, msg, token, text="Order confirmed!")
 
+
 def sendLunchNoOrderConfirmation(user, token):
-    msg = copy.deepcopy(LUNCH_NO_ORDER_CONFIRMATION_TEMPLATE)
+    msg = copy.deepcopy(MESSAGE_TEMPLATES['lunch_no_order_confirmation'])
     return sendMessageToUser(user, msg, token, text="Ok, I'll not order for you.")
+
 
 def sendOrderSummary(user, order_list, restaurant_name, token):
     """order_list ist a list of tuples, containing (dish_name, user_name)"""
-    msg = copy.deepcopy(LUNCH_ORDER_SUMMARY_TEMPLATE)
+    msg = copy.deepcopy(MESSAGE_TEMPLATES['order_summary'])
     msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('NAME_PLACEHOLDER', user.first_name)
     msg['blocks'][3]['text']['text'] = msg['blocks'][3]['text']['text'].replace('RESTAURANT_PLACEHOLDER', restaurant_name)
 
@@ -78,22 +85,10 @@ def sendOrderSummary(user, order_list, restaurant_name, token):
     msg['blocks'][3]['accessory']['options'] = orders
     return sendMessageToUser(user, msg, token, text=f"Hi {user.first_name}, please take care of today's order!")
 
-def parseSlackRequestPayload(payload):
-    user = getUserId(payload)
-    button = getSlackRequestButtonValue(payload)
-    if button is None:
-        return dict(user=user, button='')
-    if button == 'yes':
-        dish_id = getSelectedDish(payload)
-        return dict(user=user, button=button, dish_id=dish_id)
-    else:
-        return dict(user=user, button=button)
 
 def getUserId(payload):
     return payload['user']['id']
 
-def getSelectedDish(payload):
-    return int(payload['state']['values']['selection_section']['static_select-action']['selected_option']["value"])
 
 def getSlackRequestButtonValue(payload):
     if payload['type'] != "block_actions":
