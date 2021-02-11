@@ -16,7 +16,7 @@
 					"action_id": "ignore_select_restaurant",
 					"placeholder": {
 						"type": "plain_text",
-						"text": "Select an item",
+						"text": "Select an item"
 					},
 					"options": [
 						{

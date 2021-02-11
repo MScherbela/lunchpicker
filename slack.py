@@ -40,7 +40,7 @@ def sendMessageToChannel(channel, msg, token, text=None):
 
 def sendMessageToUser(user, msg, token, text=None):
     if user.active:
-        sendMessageToChannel(user.slack_id, msg, token, text)
+        return sendMessageToChannel(user.slack_id, msg, token, text)
     else:
         logger.warning(f"Tried to send message to inactive user: {user.id}, {user.get_full_name()}. Message has NOT been sent")
 

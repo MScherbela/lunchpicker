@@ -23,6 +23,7 @@ app.config.from_pyfile('instance/config.py')
 SLACK_BOT_TOKEN = app.config['SLACK_BOT_TOKEN']
 
 admin.init_app(app)
+add_admin_views()
 db.init_app(app)
 basic_auth.init_app(app)
 scheduler.init_app(app)
