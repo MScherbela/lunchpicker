@@ -42,7 +42,7 @@
 						"text": "Cast vote"
 					},
 					"value": "button_vote",
-					"action_id": "castRestaurantVote"
+					"action_id": "cast_restaurant_vote"
 				}
 			]
 		},
