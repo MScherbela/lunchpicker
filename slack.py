@@ -35,6 +35,7 @@ def sendMessageToChannel(channel, msg, token, text=None):
     if text is not None:
         data['text'] = text
     r = requests.post(url, data=data)
+    logger.debug(r.json())
     return r
 
 def sendMessageToUser(user, msg, token, text=None):
@@ -59,8 +60,8 @@ def sendLunchOptionsMessage(user, restaurant, possible_dishes, proposed_dish, to
 def sendRestaurantOptionsMessage(restaurants, leading_restaurant, token):
     msg = copy.deepcopy(MESSAGE_TEMPLATES['restaurant_options'])
     msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('RESTAURANT_PLACEHOLDER', leading_restaurant.name)
-    msg['blocks'][1]['accessory']['options'] = [dict(text=dict(type='plain_text', text=r.name), value=str(r.id)) for r in restaurants]
-    msg['blocks'][1]['accessory']['initial_option'] = dict(text=dict(type='plain_text', text=leading_restaurant.name), value=str(leading_restaurant.id))
+    msg['blocks'][1]['elements'][0]['options'] = [dict(text=dict(type='plain_text', text=r.name), value=str(r.id)) for r in restaurants]
+    msg['blocks'][1]['elements'][0]['initial_option'] = dict(text=dict(type='plain_text', text=leading_restaurant.name), value=str(leading_restaurant.id))
     return sendMessageToChannel('G01KRNNN44T', msg, token, f"How about lunch from {leading_restaurant.name}?")
 
 

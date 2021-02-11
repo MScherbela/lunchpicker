@@ -87,7 +87,7 @@ class OrdererChoice(db.Model):
 
 
 class RestaurantVote(db.Model):
-    __tablename__ = 'restaurant_choice'
+    __tablename__ = 'restaurant_vote'
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date)
     restaurant_id = db.Column(db.Integer, db.ForeignKey('restaurant.id'), nullable=False)

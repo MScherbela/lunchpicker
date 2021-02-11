@@ -84,7 +84,7 @@ def getPossibleDishes(user, restaurant):
 # %% Setter Methods
 def addUserIfNotExists(user_data):
     user = User.query.filter_by(slack_id=user_data['id']).first()
-    if user is None
+    if user is None:
         first, last = user_data['name'].split('.')
         user = User(first_name=first.title(), last_name=last.title(), slack_id=user_data['id'], active=True)
         db.session.add(user)
@@ -146,9 +146,13 @@ def voteForRestaurant(restaurant_id, user_id, date, weight=None):
     db.session.commit()
 
 
-def castBotVoteForRestaurant(date=None):
+def castBotVoteForRestaurant(date=None, prevent_revote=True):
     if date is None:
         date = datetime.date.today()
+    existing_bot_vote = RestaurantVote.query.filter_by(date=date, user_id=None).first()
+    if existing_bot_vote is not None and prevent_revote:
+        return existing_bot_vote.restaurant
+
     if date.weekday() == 2:  # Wednesday
         r = Restaurant.query.filter_by(name='Pasta Day').first()
     else:
@@ -176,16 +180,17 @@ def proposeRestaurantSchedule():
 
 
 def getLeadingRestaurant(date):
-    restaurant = db.session.query(RestaurantVote.restaurant).filter(
+    castBotVoteForRestaurant(date, prevent_revote=True) # ensure at least 1 vote
+    restaurant_id = db.session.query(RestaurantVote.restaurant_id).filter(
         RestaurantVote.date == date).filter(
         Restaurant.active == True).group_by(
         RestaurantVote.restaurant_id).order_by(
-        sqlalchemy.sql.func.sum(RestaurantVote.weight)).last()[0]
+        sqlalchemy.sql.func.sum(RestaurantVote.weight).desc()).first()[0]
+    restaurant = Restaurant.query.get(restaurant_id)
     return restaurant
 
 
 def selectRestaurant(date):
-    castBotVoteForRestaurant(date)  # ensure that there is at least 1 vote
     restaurant = getLeadingRestaurant(date)
 
     RestaurantChoice.query.filter_by(date=date).delete()
@@ -254,7 +259,7 @@ def is_valid_slack_request(payload):
 def sendRestaurantOptions():
     date = datetime.date.today()
     restaurants = getActiveRestaurants()
-    leading_restaurant = getTodaysRestaurant(date)
+    leading_restaurant = getLeadingRestaurant(date)
     slack.sendRestaurantOptionsMessage(restaurants, leading_restaurant, SLACK_BOT_TOKEN)
 
 
@@ -435,7 +440,8 @@ def api():
         return "Not authorized", 401
     user = addUserIfNotExists(payload['user'])
     logger.info(f"Received api request from user {user.get_full_name()}")
-    for action_id in payload.get('actions', ()):
+    for action in payload.get('actions', ()):
+        action_id = action['action_id']
         logger.info(f"User: {user.get_full_name()}, Action: {action_id}")
         callback = ACTION_CALLBACKS.get(action_id, None)
         if callback is not None:
