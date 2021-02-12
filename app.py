@@ -413,6 +413,18 @@ def schedule():
 
     return flask.render_template("schedule.html", table_rows=table_rows)
 
+
+@app.route('/restaurant_votes')
+def restaurant_votes():
+    results = db.session.query(RestaurantVote.restaurant_id,
+                              sqlalchemy.sql.functions.sum(RestaurantVote.weight)).filter(
+        RestaurantVote.date == datetime.date.today()).group_by(
+        RestaurantVote.restaurant_id).order_by(sqlalchemy.sql.functions.sum(RestaurantVote.weight).desc()).all()
+
+    restaurants = [dict(name=r[0].name, votes=r[1]) for r in results if r[1] > 0]
+    return flask.render_template("restaurant_votes.html", restaurants=restaurants)
+
+
 @app.route('/')
 # No basic auth for index view, since no sensitive data (beyond names)
 def index():

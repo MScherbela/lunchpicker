@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="container">
+        <h2>Votes for today's lunch</h2>
+        <table class="table">
+            <thead>
+            <tr>
+                <th scope="col">Retaurant</th>
+                <th scope="col">Votes</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for restaurant in restaurants %}
+                {% if loop.index == 0 %}
+                    <tr class="table-success">
+                {% else %}
+                    <tr class="table-secondary">
+                {% endif %}
+                <td>{{ restaurant['name'] }}</td>
+                <td>{{ restaurant['votes'] }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
