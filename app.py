@@ -36,18 +36,21 @@ def hearbeatTask():
     logger.debug("I'm still alive!")
 
 
-# @scheduler.task('cron', id='send_lunch_options', minute=45, hour=10, day_of_week='mon,tue,wed,thu,fri')
-# def sendLunchOptionsTask():
-#    sendLunchOptions()
+@scheduler.task('cron', id='send_lunch_options', minute=45, hour=10, day_of_week='mon,tue,wed,thu,fri')
+def sendLunchOptionsTask():
+   with app.app_context():
+       sendLunchOptions()
 
-# @scheduler.task('cron', id='send_order_summary', minute=15, hour=11, day_of_week='mon,tue,wed,thu,fri')
-# def sendOrderSummaryTask():
-#    sendOrderSummary()
-#    updateDishWeights()
+@scheduler.task('cron', id='send_order_summary', minute=30, hour=11, day_of_week='mon,tue,wed,thu,fri')
+def sendOrderSummaryTask():
+   with app.app_context():
+       sendOrderSummary()
+       updateDishWeights()
 
 @scheduler.task('cron', id='propose_restaurant_schedule', minute=0, hour=4, day_of_week="Sun")
 def proposeRestaurantScheduleTask():
-    proposeRestaurantSchedule()
+   with app.app_context():
+       proposeRestaurantSchedule()
 
 
 # %% Getter Methods

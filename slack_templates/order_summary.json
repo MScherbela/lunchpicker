@@ -22,7 +22,7 @@
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": "Order list for RESTAURANT_PLACEHOLDER"
+				"text": "Order list for RESTAURANT_PLACEHOLDER is below. Please *also check the lunch channel* to see if anyone else wants somthing else!"
 			},
 			"accessory": {
 				"type": "checkboxes",
