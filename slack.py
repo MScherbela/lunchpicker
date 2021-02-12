@@ -76,6 +76,12 @@ def sendLunchNoOrderConfirmation(user, token):
     return sendMessageToUser(user, msg, token, text="Ok, I'll not order for you.")
 
 
+def sendTooLateMessage(user, orderer, token):
+    msg = copy.deepcopy(MESSAGE_TEMPLATES['too_late'])
+    msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('ORDERER_NAME', orderer.get_full_name())
+    return sendMessageToUser(user, msg, token, text=f"You might be too late. Check with {orderer.get_full_name()}.")
+
+
 def sendOrderSummary(user, order_list, restaurant_name, token):
     """order_list ist a list of tuples, containing (dish_name, user_name)"""
     msg = copy.deepcopy(MESSAGE_TEMPLATES['order_summary'])

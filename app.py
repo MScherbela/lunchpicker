@@ -206,9 +206,16 @@ def selectRestaurant(date):
     return restaurant
 
 
-def selectOrderer(date=None):
+def selectOrderer(date=None, confirm_sendout=False):
     if date is None:
         date = datetime.date.today()
+
+    # Check if OrdererChoice has already been made
+    current_orderer = OrdererChoice.query.filter_by(date=date, status=1).first()
+    if current_orderer is not None:
+        return current_orderer.user
+
+    # If not => Select a new one based on karma
     potential_users = getUsersWithConfirmedOrder()
     if len(potential_users) == 0:
         return None
@@ -232,7 +239,7 @@ def selectOrderer(date=None):
             highest_ratio = ratio
 
     OrdererChoice.query.filter_by(date=date).delete()
-    db.session.add(OrdererChoice(user_id=highest_user.id, date=date))
+    db.session.add(OrdererChoice(user_id=highest_user.id, date=date, status=1 if confirm_sendout else 0))
     db.session.commit()
     return highest_user
 
@@ -301,7 +308,7 @@ def sendOrderSummary(responsible_user=None):
         return
 
     if responsible_user is None:
-        responsible_user = selectOrderer(date)
+        responsible_user = selectOrderer(date, confirm_sendout=True)
     slack.sendOrderSummary(responsible_user, orders, getTodaysRestaurant().name, SLACK_BOT_TOKEN)
     logger.info(f"Sent lunch order summary to: {responsible_user.first_name}")
 
@@ -323,7 +330,12 @@ def action_unsubscribe(payload, user):
 def action_select_dish(payload, user):
     dish_id = int(payload['state']['values']['dish_selection_section']['static_select-action']['selected_option']["value"])
     setUserChoice(user.id, dish_id)
-    slack.sendLunchConfirmation(user, Dish.query.get(dish_id).name, SLACK_BOT_TOKEN)
+
+    orderer_choice = OrdererChoice.query(date=datetime.date.today(), status=1).first()
+    if orderer_choice is None:
+        slack.sendLunchConfirmation(user, Dish.query.get(dish_id).name, SLACK_BOT_TOKEN)
+    else:
+        slack.sendTooLateMessage(user, orderer_choice.user, SLACK_BOT_TOKEN)
 
 
 def action_decline_dish(payload, user):
@@ -336,6 +348,7 @@ def action_cast_restaurant_vote(payload, user):
     voteForRestaurant(restaurant_id, user.id)
     restaurant = Restaurant.query.get(restaurant_id)
     logger.info(f"{user.first_name} voted for {restaurant.name}")
+
 
 ACTION_CALLBACKS = dict(subscribe=action_subscribe, unsubscribe=action_unsubscribe, select_dish=action_select_dish,
                         decline_dish=action_decline_dish, cast_restaurant_vote=action_cast_restaurant_vote)

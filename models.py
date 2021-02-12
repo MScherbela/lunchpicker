@@ -80,7 +80,7 @@ class OrdererChoice(db.Model):
     date = db.Column(db.Date)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     user = db.relationship('User', )
-    status = db.Column(db.Integer, default=0)
+    status = db.Column(db.Integer, default=0) #0: defined but not yet communicated; 1: summary already sent
 
     def __repr__(self):
         return f"<OrdererChoice: {self.date}, {self.user_id}; status: {self.status}>"
