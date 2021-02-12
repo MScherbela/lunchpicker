@@ -39,7 +39,7 @@ def hearbeatTask():
 @scheduler.task('cron', id='send_lunch_options', minute=45, hour=10, day_of_week='mon,tue,wed,thu,fri')
 def sendLunchOptionsTask():
    with app.app_context():
-       sendLunchProposal()
+       sendLunchProposalToAll()
 
 @scheduler.task('cron', id='send_order_summary', minute=30, hour=11, day_of_week='mon,tue,wed,thu,fri')
 def sendOrderSummaryTask():
@@ -155,10 +155,11 @@ def getAllUserKarma():
     logger.debug("Contributions")
     logger.debug(contributions)
 
+    pasta_day_id = Restaurant.query.filter_by(name='Pasta Day').first().id
     pasta_contributions = db.session.query(User.id, sqlfunc.count(RestaurantChoice.id)).filter(
         User.id == OrdererChoice.user_id,
         OrdererChoice.date == RestaurantChoice.date,
-        RestaurantChoice.restaurant.name == 'Pasta Day').group_by(User.id).all()
+        RestaurantChoice.restaurant_id == pasta_day_id).group_by(User.id).all()
     logger.debug("Pasta Contributions")
     logger.debug(pasta_contributions)
 
@@ -221,17 +222,19 @@ def getLeadingRestaurant(date):
         RestaurantVote.date == date).filter(
         Restaurant.active == True).group_by(
         RestaurantVote.restaurant_id).order_by(
-        sqlalchemy.sql.func.sum(RestaurantVote.weight).desc()).first()[0]
+        sqlfunc.sum(RestaurantVote.weight).desc()).first()[0]
     restaurant = Restaurant.query.get(restaurant_id)
     return restaurant
 
 
-def selectRestaurant(date):
+def selectRestaurant(date=None):
+    if date is None:
+        date = datetime.date.today()
     restaurant = getLeadingRestaurant(date)
 
     RestaurantChoice.query.filter_by(date=date).delete()
     db.session.add(RestaurantChoice(date=date, restaurant_id=restaurant.id))
-    db.sesson.commit()
+    db.session.commit()
     selectDishesRandomly(restaurant, date)
     return restaurant
 
@@ -250,12 +253,12 @@ def selectOrderer(date=None, confirm_sendout=False):
     if len(potential_users) == 0:
         return None
 
-    user_choices = db.session.query(User.id, sqlalchemy.sql.functions.count(DishChoice.date)).filter(
+    user_choices = db.session.query(User.id, sqlfunc.count(DishChoice.date)).filter(
         User.id == DishChoice.user_id).filter(
         DishChoice.date < date).filter(
         DishChoice.status == 1).group_by(User.id).all()
     user_choices = {r[0]: r[1] for r in user_choices}
-    user_orders = db.session.query(User.id, sqlalchemy.sql.functions.count(OrdererChoice.date)).filter(
+    user_orders = db.session.query(User.id, sqlfunc.count(OrdererChoice.date)).filter(
         User.id == OrdererChoice.user_id).filter(
         OrdererChoice.date < date).group_by(User.id).all()
     user_orders = {r[0]: r[1] for r in user_orders}
@@ -457,9 +460,9 @@ def schedule():
 @app.route('/restaurant_votes')
 def restaurant_votes():
     results = db.session.query(RestaurantVote.restaurant_id,
-                              sqlalchemy.sql.functions.sum(RestaurantVote.weight)).filter(
+                              sqlfunc.sum(RestaurantVote.weight)).filter(
         RestaurantVote.date == datetime.date.today()).group_by(
-        RestaurantVote.restaurant_id).order_by(sqlalchemy.sql.functions.sum(RestaurantVote.weight).desc()).all()
+        RestaurantVote.restaurant_id).order_by(sqlfunc.sum(RestaurantVote.weight).desc()).all()
     logger.debug(str(results))
 
     restaurants = [dict(name=Restaurant.query.get(r[0]).name, votes=r[1]) for r in results if r[1] != 0]
