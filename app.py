@@ -147,13 +147,13 @@ def calculate_karma(user_data):
     karma = user_data['contributions']
     karma += user_data['pasta_contributions'] # Pasta counts 2x (it's already included once in regular contributions)
     karma += user_data['meals_served'] * 0.2  # Give additional karma for serving large groups
-    return karma / (1+user_data['orders'])
+    return 10.0 * karma / (1+user_data['orders'])
 
 def getAllUserKarma():
     all_user_ids = db.session.query(User.id).all()
     all_user_ids = [x[0] for x in all_user_ids]
 
-    user_data = {id:dict(orders=0, contributions=0, pasta_contributions=0, meals_served=0) for id in all_user_ids}
+    user_data = {id:dict(id=id, orders=0, contributions=0, pasta_contributions=0, meals_served=0) for id in all_user_ids}
     for user_id in user_data:
         user_data[user_id]['name'] = User.query.get(user_id).get_full_name()
 
@@ -268,30 +268,17 @@ def selectOrderer(date=None, confirm_sendout=False):
     potential_users = getUsersWithConfirmedOrder()
     if len(potential_users) == 0:
         return None
+    potential_user_ids = set([u.id for u in potential_users])
 
-    user_choices = db.session.query(User.id, sqlfunc.count(DishChoice.date)).filter(
-        User.id == DishChoice.user_id).filter(
-        DishChoice.date < date).filter(
-        DishChoice.status == 1).group_by(User.id).all()
-    user_choices = {r[0]: r[1] for r in user_choices}
-    user_orders = db.session.query(User.id, sqlfunc.count(OrdererChoice.date)).filter(
-        User.id == OrdererChoice.user_id).filter(
-        OrdererChoice.date < date).group_by(User.id).all()
-    user_orders = {r[0]: r[1] for r in user_orders}
-
-    highest_user = None
-    highest_ratio = 0.0
-    for user in potential_users:
-        ratio = user_choices.get(user.id, 0) / user_orders.get(user.id, 0.1)
-        if ratio >= highest_ratio:
-            highest_user = user
-            highest_ratio = ratio
-
-    OrdererChoice.query.filter_by(date=date).delete()
-    db.session.add(OrdererChoice(user_id=highest_user.id, date=date, status=1 if confirm_sendout else 0))
-    db.session.commit()
-    return highest_user
-
+    user_karma_data = getAllUserKarma() # already sorted by karma in descending order
+    for karma, user_dict in user_karma_data:
+        if user_dict['id'] in potential_user_ids:
+            user = User.query.get(user_dict['id'])
+            OrdererChoice.query.filter_by(date=date).delete()
+            db.session.add(OrdererChoice(user_id=user.id, date=date, status=1 if confirm_sendout else 0))
+            db.session.commit()
+            return user
+    return None
 
 def selectDishesRandomly(restaurant, date=None):
     if date is None:
