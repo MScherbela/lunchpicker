@@ -18,7 +18,7 @@
             {% for d in user_data %}
                 {% if loop.index0 == 0 %}
                     <tr class="table-success">
-                {% elif loop.index == len(user_data) %}
+                {% elif loop.last %}
                     <tr class="table-warning">
                 {% else %}
                     <tr class="table-secondary">
