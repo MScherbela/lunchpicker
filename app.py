@@ -97,7 +97,9 @@ def addUserIfNotExists(user_data):
         default_dishes = Dish.query.filter_by(default=True).all()
         for d in default_dishes:
             db.session.add(UserDishWeight(user_id=user.id, dish_id=d.id, weight=0.1))
-        db.session.commit()
+    else:
+        user.active = True
+    db.session.commit()
     return user
 
 def addDish(dish_name, user, restaurant, confirm_choice):
