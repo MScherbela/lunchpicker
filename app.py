@@ -319,12 +319,14 @@ def action_subscribe(payload, user):
     user.active = True
     db.session.commit()
     logger.info(f"User {user.get_full_name()} has been activated.")
+    slack.sendSubscribeMessage(user, SLACK_BOT_TOKEN)
 
 
 def action_unsubscribe(payload, user):
     user.active = False
     db.session.commit()
     logger.info(f"User {user.get_full_name()} has been deactivated.")
+    slack.sendUnsubscribeMessage(user, SLACK_BOT_TOKEN)
 
 
 def action_select_dish(payload, user):

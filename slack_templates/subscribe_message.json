@@ -1,0 +1,11 @@
+{
+	"blocks": [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Hi NAME_PLACEHOLDER, welcome to the LunchBot!\nFrom now on, I'll send you a daily proposal for your lunch-choice and will make sure someone orders it. I'll learn over time, hopefully getting you the food you like.\n\nShould you no longer want my services, just click the unsubscribe button in the lunch-channel. Should you have any technical issues, please reach out to Michael."
+			}
+		}
+	]
+}

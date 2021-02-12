@@ -82,6 +82,18 @@ def sendTooLateMessage(user, orderer, token):
     return sendMessageToUser(user, msg, token, text=f"You might be too late. Check with {orderer.get_full_name()}.")
 
 
+def sendSubscribeMessage(user, token):
+    msg = copy.deepcopy(MESSAGE_TEMPLATES['subscribe_message'])
+    msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('NAME_PLACEHOLDER', user.first_name)
+    return sendMessageToUser(user, msg, token, text=f"Welcome to the lunchbot!")
+
+
+def sendUnsubscribeMessage(user, token):
+    msg = copy.deepcopy(MESSAGE_TEMPLATES['unsubscribe_message'])
+    msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('NAME_PLACEHOLDER', user.first_name)
+    return sendMessageToUser(user, msg, token, text=f"You've been unsubscribed from the lunchbot.")
+
+
 def sendOrderSummary(user, order_list, restaurant_name, token):
     """order_list ist a list of tuples, containing (dish_name, user_name)"""
     msg = copy.deepcopy(MESSAGE_TEMPLATES['order_summary'])

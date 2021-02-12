@@ -1,0 +1,11 @@
+{
+	"blocks": [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Hi NAME_PLACEHOLDER,\nI'm sorry to see you go :cry:\nI'll no longer send you any direct messages. If you want to join back in, just click the subscribe button in the lunch-channel.\nShould you have any technical issues, please reach out to Michael."
+			}
+		}
+	]
+}
