@@ -323,10 +323,10 @@ def action_subscribe(payload, user):
 
 
 def action_unsubscribe(payload, user):
+    slack.sendUnsubscribeMessage(user, SLACK_BOT_TOKEN)
     user.active = False
     db.session.commit()
     logger.info(f"User {user.get_full_name()} has been deactivated.")
-    slack.sendUnsubscribeMessage(user, SLACK_BOT_TOKEN)
 
 
 def action_select_dish(payload, user):
