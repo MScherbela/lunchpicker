@@ -185,7 +185,7 @@ def getAllUserKarma():
 
     user_data = [(calculate_karma(d), d) for d in user_data.values()]
     user_data = sorted(user_data, reverse=True)
-    return flask.render_template('karma.html', user_data=user_data)
+    return user_data
 
 
 def voteForRestaurant(restaurant_id, user_id, date=None, weight=None):
@@ -516,7 +516,7 @@ def index():
 # No basic auth right now for UX-reasons
 def karma():
     user_data = getAllUserKarma()
-    return "TBD"
+    return flask.render_template('karma.html', user_data=user_data)
 
 
 @app.route('/profile/<user_id>', methods=['GET', 'POST'])
