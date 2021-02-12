@@ -13,7 +13,7 @@ import slack
 import json
 import datetime
 import random
-import sqlalchemy.sql.functions
+import sqlalchemy.sql.functions as sqlfunc
 from extensions import *
 from models import *
 
@@ -39,7 +39,7 @@ def hearbeatTask():
 @scheduler.task('cron', id='send_lunch_options', minute=45, hour=10, day_of_week='mon,tue,wed,thu,fri')
 def sendLunchOptionsTask():
    with app.app_context():
-       sendLunchOptions()
+       sendLunchProposal()
 
 @scheduler.task('cron', id='send_order_summary', minute=30, hour=11, day_of_week='mon,tue,wed,thu,fri')
 def sendOrderSummaryTask():
@@ -143,6 +143,34 @@ def setUserChoice(user_id, dish_id):
 
 
 # %% Voting / Selecting logic
+def getAllUserKarma():
+    orders = db.session.query(User.id, sqlfunc.count(DishChoice.id)).filter(
+        DishChoice.user_id == User.id,
+        DishChoice.status == 1).group_by(User.id).all()
+    logger.debug("Orders")
+    logger.debug(orders)
+
+    contributions = db.session.query(User.id, sqlfunc.count(OrdererChoice.id)).filter(
+        OrdererChoice.user_id == User.id).group_by(User.id).all()
+    logger.debug("Contributions")
+    logger.debug(contributions)
+
+    pasta_contributions = db.session.query(User.id, sqlfunc.count(RestaurantChoice.id)).filter(
+        User.id == OrdererChoice.user_id,
+        OrdererChoice.date == RestaurantChoice.date,
+        RestaurantChoice.restaurant.name == 'Pasta Day').group_by(User.id).all()
+    logger.debug("Pasta Contributions")
+    logger.debug(pasta_contributions)
+
+    meals_served = db.session.query(User.id, sqlfunc.count(DishChoice.id)).filter(
+        User.id == OrdererChoice.user_id,
+        OrdererChoice.date == DishChoice.date,
+        DishChoice.status == 1).group_by(User.id).all()
+    logger.debug("Meals Served")
+    logger.debug(meals_served)
+
+
+
 def voteForRestaurant(restaurant_id, user_id, date=None, weight=None):
     if date is None:
         date = datetime.date.today()
@@ -463,6 +491,13 @@ def index():
 
     return flask.render_template('index.html', table_rows=table_rows,
                                  restaurant=restaurant.name)
+
+
+@app.route('/karma')
+# No basic auth right now for UX-reasons
+def karma():
+    getAllUserKarma()
+    return "TBD"
 
 
 @app.route('/profile/<user_id>', methods=['GET', 'POST'])
