@@ -343,15 +343,23 @@ def action_decline_dish(payload, user):
     slack.sendLunchNoOrderConfirmation(user, SLACK_BOT_TOKEN)
 
 
-def action_cast_restaurant_vote(payload, user):
+def action_cast_restaurant_upvote(payload, user):
     restaurant_id = int(payload['state']['values']['voting']['ignore_select_restaurant']['selected_option']["value"])
     voteForRestaurant(restaurant_id, user.id)
     restaurant = Restaurant.query.get(restaurant_id)
     logger.info(f"{user.first_name} voted for {restaurant.name}")
 
 
+def action_cast_restaurant_downvote(payload, user):
+    restaurant_id = int(payload['state']['values']['voting']['ignore_select_restaurant']['selected_option']["value"])
+    voteForRestaurant(restaurant_id, user.id, weight=-1)
+    restaurant = Restaurant.query.get(restaurant_id)
+    logger.info(f"{user.first_name} voted against {restaurant.name}")
+
+
 ACTION_CALLBACKS = dict(subscribe=action_subscribe, unsubscribe=action_unsubscribe, select_dish=action_select_dish,
-                        decline_dish=action_decline_dish, cast_restaurant_vote=action_cast_restaurant_vote)
+                        decline_dish=action_decline_dish, cast_restaurant_upvote=action_cast_restaurant_upvote,
+                        cast_restaurant_downvote=action_cast_restaurant_downvote)
 
 def savePayloadForDebugging(payload):
     with open('/data/request.json', 'w') as f:

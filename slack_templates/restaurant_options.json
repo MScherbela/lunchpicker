@@ -4,7 +4,7 @@
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": "Hey, how about lunch from *RESTAURANT_PLACEHOLDER* today?\nIf you want something else, please cast a vote, or check the <https://lunchbot.scherbela.com|lunchbot website> for the current vote count."
+				"text": "Hey, how about lunch from *RESTAURANT_PLACEHOLDER* today?\nIf you want something else, please cast a vote, or check the <https://lunchbot.scherbela.com/restaurant_votes|lunchbot website> for the current vote count."
 			}
 		},
 		{
@@ -39,10 +39,21 @@
 					"type": "button",
 					"text": {
 						"type": "plain_text",
-						"text": "Cast vote"
+						"text": ":+1:",
+						"emoji": true
 					},
-					"value": "button_vote",
-					"action_id": "cast_restaurant_vote"
+					"value": "button_upvote",
+					"action_id": "cast_restaurant_upvote"
+				},
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": ":-1:",
+						"emoji": true
+					},
+					"value": "button_downvote",
+					"action_id": "cast_restaurant_downvote"
 				}
 			]
 		},
