@@ -420,8 +420,9 @@ def restaurant_votes():
                               sqlalchemy.sql.functions.sum(RestaurantVote.weight)).filter(
         RestaurantVote.date == datetime.date.today()).group_by(
         RestaurantVote.restaurant_id).order_by(sqlalchemy.sql.functions.sum(RestaurantVote.weight).desc()).all()
+    logger.debug(str(results))
 
-    restaurants = [dict(name=r[0].name, votes=r[1]) for r in results if r[1] > 0]
+    restaurants = [dict(name=Restaurant.query.get(r[0]).name, votes=r[1]) for r in results if r[1] > 0]
     return flask.render_template("restaurant_votes.html", restaurants=restaurants)
 
 
