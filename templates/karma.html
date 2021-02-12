@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="container">
+        <h2>Karma overview</h2>
+        <table class="table">
+            <thead>
+            <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Orders made</th>
+                <th scope="col">...of which Pasta Day</th>
+                <th scope="col">Meals served</th>
+                <th scope="col">Meals consumed</th>
+                <th scope="col">Karma ratio</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for d in user_data %}
+                <tr class="table-secondary">
+                    <td>{{ d[1]['name'] }}</td>
+                    <td>{{ d[1]['contributions'] }}</td>
+                    <td>{{ d[1]['pasta_contributions'] }}</td>
+                    <td>{{ d[1]['meals_served'] }}</td>
+                    <td>{{ d[1]['orders'] }}</td>
+                    <td><b>{{ '{:.1f}'.format(d[0]) }}</b></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

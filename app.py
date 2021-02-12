@@ -143,33 +143,49 @@ def setUserChoice(user_id, dish_id):
 
 
 # %% Voting / Selecting logic
+def calculate_karma(user_data):
+    karma = user_data['contributions']
+    karma += user_data['pasta_contributions'] # Pasta counts 2x (it's already included once in regular contributions)
+    karma += user_data['meals_served'] * 0.2  # Give additional karma for serving large groups
+    return karma / (1+user_data['orders'])
+
 def getAllUserKarma():
+    all_user_ids = db.session.query(User.id).all()
+    all_user_ids = [x[0] for x in all_user_ids]
+
+    user_data = {id:dict(orders=0, contributions=0, pasta_contributions=0, meals_served=0) for id in all_user_ids}
+    for user_id in user_data:
+        user_data[user_id]['name'] = User.query.get(user_id).get_full_name()
+
     orders = db.session.query(User.id, sqlfunc.count(DishChoice.id)).filter(
         DishChoice.user_id == User.id,
         DishChoice.status == 1).group_by(User.id).all()
-    logger.debug("Orders")
-    logger.debug(orders)
+    for x in orders:
+        user_data[x[0]]['orders'] = x[1]
 
     contributions = db.session.query(User.id, sqlfunc.count(OrdererChoice.id)).filter(
         OrdererChoice.user_id == User.id).group_by(User.id).all()
-    logger.debug("Contributions")
-    logger.debug(contributions)
+    for x in contributions:
+        user_data[x[0]]['contributions'] = x[1]
 
     pasta_day_id = Restaurant.query.filter_by(name='Pasta Day').first().id
     pasta_contributions = db.session.query(User.id, sqlfunc.count(RestaurantChoice.id)).filter(
         User.id == OrdererChoice.user_id,
         OrdererChoice.date == RestaurantChoice.date,
         RestaurantChoice.restaurant_id == pasta_day_id).group_by(User.id).all()
-    logger.debug("Pasta Contributions")
-    logger.debug(pasta_contributions)
+    for x in pasta_contributions:
+        user_data[x[0]]['pasta_contributions'] = x[1]
 
     meals_served = db.session.query(User.id, sqlfunc.count(DishChoice.id)).filter(
         User.id == OrdererChoice.user_id,
         OrdererChoice.date == DishChoice.date,
         DishChoice.status == 1).group_by(User.id).all()
-    logger.debug("Meals Served")
-    logger.debug(meals_served)
+    for x in meals_served:
+        user_data[x[0]]['meals_served'] = x[1]
 
+    user_data = [(calculate_karma(d), d) for d in user_data.values()]
+    user_data = sorted(user_data, reverse=True)
+    return flask.render_template('karma.html', user_data=user_data)
 
 
 def voteForRestaurant(restaurant_id, user_id, date=None, weight=None):
@@ -499,7 +515,7 @@ def index():
 @app.route('/karma')
 # No basic auth right now for UX-reasons
 def karma():
-    getAllUserKarma()
+    user_data = getAllUserKarma()
     return "TBD"
 
 
