@@ -31,14 +31,14 @@ scheduler.start()
 
 
 # %% Scheduler tasks
-@scheduler.task('cron', id='cast_bot_vote', minute=0, hour=9, day_of_week="mon,tue,wed,thu,fri")
+@scheduler.task('cron', id='cast_bot_vote', minute=39, hour=9, day_of_week="mon,tue,wed,thu,fri")
 def castBotVoteTask():
     with app.app_context():
         castBotVoteForRestaurant(prevent_revote=False)
         sendRestaurantOptions('test')
 
 
-@scheduler.task('cron', id='send_restaurant_options', minute=30, hour=9, day_of_week="mon,tue,wed,thu,fri")
+@scheduler.task('cron', id='send_restaurant_options', minute=35, hour=9, day_of_week="mon,tue,wed,thu,fri")
 def sendRestaurantOptionsTask():
     with app.app_context():
         castBotVoteForRestaurant(prevent_revote=True) # should already be decided; just in case
