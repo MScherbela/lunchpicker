@@ -483,7 +483,8 @@ def restaurant_votes():
 def index():
     restaurant = getTodaysRestaurant()
     if restaurant is None:
-        return flask.render_template('index_undecided.html')
+        return flask.redirect('/restaurant_votes')
+        # return flask.render_template('index_undecided.html')
 
     choices = db.session.query(User, DishChoice
                                ).filter(User.active == True
