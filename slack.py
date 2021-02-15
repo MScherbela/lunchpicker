@@ -57,12 +57,22 @@ def sendLunchOptionsMessage(user, restaurant, possible_dishes, proposed_dish, to
     return sendMessageToUser(user, msg, token, fallback_text)
 
 
-def sendRestaurantOptionsMessage(restaurants, leading_restaurant, token):
+def sendRestaurantOptionsMessage(restaurants, leading_restaurant, channel_name, token):
     msg = copy.deepcopy(MESSAGE_TEMPLATES['restaurant_options'])
     msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('RESTAURANT_PLACEHOLDER', leading_restaurant.name)
     msg['blocks'][1]['elements'][0]['options'] = [dict(text=dict(type='plain_text', text=r.name), value=str(r.id)) for r in restaurants]
     msg['blocks'][1]['elements'][0]['initial_option'] = dict(text=dict(type='plain_text', text=leading_restaurant.name), value=str(leading_restaurant.id))
-    return sendMessageToChannel('G01KRNNN44T', msg, token, f"How about lunch from {leading_restaurant.name}?")
+    if channel_name == 'lunch':
+        channel = 'C0170NJBXS5'
+    elif channel_name == 'test':
+        channel = 'G01KRNNN44T'
+    elif channel_name == 'michael':
+        channel = 'U01BM5PTL3G'
+    else:
+        logger.error(f"Invalid channel name for sendRestaurantOptions: {channel_name}")
+        raise ValueError("Invalid channel name")
+
+    return sendMessageToChannel(channel, msg, token, f"How about lunch from {leading_restaurant.name}?")
 
 
 def sendLunchConfirmation(user, dish_name, token):

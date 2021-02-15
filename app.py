@@ -31,26 +31,32 @@ scheduler.start()
 
 
 # %% Scheduler tasks
-@scheduler.task('cron', id='heartbeat', minute=30, hour=8)
-def hearbeatTask():
-    logger.debug("I'm still alive!")
+@scheduler.task('cron', id='cast_bot_vote', minute=0, hour=9, day_of_week="mon,tue,wed,thu,fri")
+def castBotVoteTask():
+    with app.app_context():
+        castBotVoteForRestaurant(prevent_revote=False)
+        sendRestaurantOptions('test')
 
 
-@scheduler.task('cron', id='send_lunch_options', minute=45, hour=10, day_of_week='mon,tue,wed,thu,fri')
+@scheduler.task('cron', id='send_restaurant_options', minute=30, hour=9, day_of_week="mon,tue,wed,thu,fri")
+def sendRestaurantOptionsTask():
+    with app.app_context():
+        castBotVoteForRestaurant(prevent_revote=True) # should already be decided; just in case
+        sendRestaurantOptions()
+
+
+@scheduler.task('cron', id='send_lunch_options', minute=30, hour=10, day_of_week='mon,tue,wed,thu,fri')
 def sendLunchOptionsTask():
-   with app.app_context():
-       sendLunchProposalToAll()
+    with app.app_context():
+        selectRestaurant()
+        sendLunchProposalToAll()
 
-@scheduler.task('cron', id='send_order_summary', minute=30, hour=11, day_of_week='mon,tue,wed,thu,fri')
+
+@scheduler.task('cron', id='send_order_summary', minute=15, hour=11, day_of_week='mon,tue,wed,thu,fri')
 def sendOrderSummaryTask():
-   with app.app_context():
-       sendOrderSummary()
-       updateDishWeights()
-
-@scheduler.task('cron', id='propose_restaurant_schedule', minute=0, hour=4, day_of_week="Sun")
-def proposeRestaurantScheduleTask():
-   with app.app_context():
-       proposeRestaurantSchedule()
+    with app.app_context():
+        sendOrderSummary()
+        updateDishWeights()
 
 
 # %% Getter Methods
@@ -225,11 +231,11 @@ def castBotVoteForRestaurant(date=None, prevent_revote=True):
     return r
 
 
-def proposeRestaurantSchedule():
-    for d in range(7):
-        date = datetime.date.today() + datetime.timedelta(days=d)
-        if date.weekday() < 5:  # Mo-Fr
-            castBotVoteForRestaurant(date)
+# def proposeRestaurantSchedule():
+#     for d in range(7):
+#         date = datetime.date.today() + datetime.timedelta(days=d)
+#         if date.weekday() < 5:  # Mo-Fr
+#             castBotVoteForRestaurant(date)
 
 
 def getLeadingRestaurant(date):
@@ -305,11 +311,11 @@ def is_valid_slack_request(payload):
     return payload['token'] == app.config['SLACK_REQUEST_TOKEN']
 
 
-def sendRestaurantOptions():
+def sendRestaurantOptions(channel_name='lunch'):
     date = datetime.date.today()
     restaurants = getActiveRestaurants()
     leading_restaurant = getLeadingRestaurant(date)
-    slack.sendRestaurantOptionsMessage(restaurants, leading_restaurant, SLACK_BOT_TOKEN)
+    slack.sendRestaurantOptionsMessage(restaurants, leading_restaurant, channel_name, SLACK_BOT_TOKEN)
 
 
 def sendLunchProposal(user):
@@ -435,7 +441,7 @@ def test():
         elif 'update_dish_weights' in flask.request.form.keys():
             updateDishWeights()
         elif 'send_restaurant_options_michael' in flask.request.form.keys():
-            sendRestaurantOptions()
+            sendRestaurantOptions('test')
         else:
             return "Unknown request"
     return flask.render_template('test.html')
