@@ -277,7 +277,7 @@ def selectOrderer(date=None, confirm_sendout=False):
     potential_user_ids = set([u.id for u in potential_users])
 
     user_karma_data = getAllUserKarma() # already sorted by karma in descending order
-    for karma, user_dict in user_karma_data:
+    for karma, user_dict in user_karma_data[::-1]:
         if user_dict['id'] in potential_user_ids:
             user = User.query.get(user_dict['id'])
             OrdererChoice.query.filter_by(date=date).delete()
