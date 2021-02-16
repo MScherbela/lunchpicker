@@ -342,20 +342,32 @@ def sendLunchProposalToAll():
 
 def sendOrderSummary(responsible_user=None):
     date = datetime.date.today()
-    orders = db.session.query(Dish, User).filter(
-        DishChoice.dish_id == Dish.id).filter(
-        DishChoice.user_id == User.id).filter(
-        DishChoice.date == date).filter(
-        DishChoice.status == 1).order_by(Dish.name).all()
-    orders = [(o[0].name, o[1].first_name) for o in orders]
-    if len(orders) == 0:
-        return
-
+    restaurant = getTodaysRestaurant()
     if responsible_user is None:
         responsible_user = selectOrderer(date, confirm_sendout=True)
-    slack.sendOrderSummary(responsible_user, orders, getTodaysRestaurant().name, SLACK_BOT_TOKEN)
-    logger.info(f"Sent lunch order summary to: {responsible_user.first_name}")
+    if restaurant.name == 'Pasta Day':
+        sendOrderSummaryPastaDay(responsible_user)
+        logger.info(f"Sent pasta instructions to: {responsible_user.first_name}")
+    else:
+        orders = db.session.query(Dish, User).filter(
+            DishChoice.dish_id == Dish.id).filter(
+            DishChoice.user_id == User.id).filter(
+            DishChoice.date == date).filter(
+            DishChoice.status == 1).order_by(Dish.name).all()
+        orders = [(o[0].name, o[1].first_name) for o in orders]
+        if len(orders) == 0:
+            return
 
+        slack.sendOrderSummary(responsible_user, orders, getTodaysRestaurant().name, SLACK_BOT_TOKEN)
+        logger.info(f"Sent lunch order summary to: {responsible_user.first_name}")
+    
+def sendOrderSummaryPastaDay(responsible_user):
+    joining_users = db.session.query(User).filter(
+        User.id == DishChoice.user_id).filter(
+        DishChoice.date == datetime.date.today()).filter(
+        DishChoice.status == 1).all()
+    pasta_amount = int(180 * len(joining_users))
+    slack.sendOrderSummaryPasta(responsible_user, joining_users, pasta_amount, SLACK_BOT_TOKEN)
 
 #%% Actions in response to slack requests
 
@@ -426,6 +438,9 @@ def test():
             user = User.query.filter_by(last_name='Scherbela').first()
             r = sendLunchProposal(user)
             return r.text
+        elif 'send_pasta_instructions_michael' in flask.request.form.keys():
+            user = User.query.filter_by(last_name='Scherbela').first()
+            r = sendOrderSummaryPastaDay(user)
         elif 'send_active' in flask.request.form.keys():
             n = sendLunchProposalToAll()
             flask.flash(f"Messages sent to {n} people")

@@ -114,6 +114,23 @@ def sendOrderSummary(user, order_list, restaurant_name, token):
     msg['blocks'][3]['accessory']['options'] = orders
     return sendMessageToUser(user, msg, token, text=f"Hi {user.first_name}, please take care of today's order!")
 
+def sendOrderSummaryPasta(user, users_joining, grams_of_pasta, token):
+    """order_list ist a list of tuples, containing (dish_name, user_name)"""
+    n_people = len(users_joining)
+    usernames = ", ".join([u.first_name for u in users_joining])
+
+    msg = copy.deepcopy(MESSAGE_TEMPLATES['order_summary_pasta'])
+    msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace(
+        'NAME_PLACEHOLDER', user.first_name).replace(
+        'N_PEOPLE_PLACEHOLDER', str(n_people)).replace(
+        'USERNAMES_PLACEHOLDER', usernames)
+
+    msg['blocks'][2]['text']['text'] = msg['blocks'][2]['text']['text'].replace(
+        'N_PEOPLE_PLACEHOLDER', str(n_people)).replace(
+        'GRAM_PASTA_PLACEHOLDER', str(grams_of_pasta))
+
+    return sendMessageToUser(user, msg, token, text=f"Hi {user.first_name}, please take care of cooking pasta today!")
+
 
 def getUserId(payload):
     return payload['user']['id']
