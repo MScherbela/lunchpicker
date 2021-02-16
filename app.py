@@ -87,7 +87,9 @@ def getTodaysRestaurant():
 
 
 def getPossibleDishes(user, restaurant):
-    return db.session.query(Dish).filter(UserDishWeight.user_id == user.id).filter(
+    return db.session.query(Dish).filter(
+        Dish.id == UserDishWeight.dish_id).filter(
+        UserDishWeight.user_id == user.id).filter(
         Dish.restaurant_id == restaurant.id).all()
 
 
