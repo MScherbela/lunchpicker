@@ -152,7 +152,8 @@ def setUserChoice(user_id, dish_id):
 
 # %% Voting / Selecting logic
 def calculate_karma(user_data):
-    karma = user_data['contributions']
+    karma = 1.0 # Add base karma
+    karma += user_data['contributions']
     karma += user_data['pasta_contributions'] # Pasta counts 2x (it's already included once in regular contributions)
     karma += user_data['meals_served'] * 0.2  # Give additional karma for serving large groups
     return 10.0 * karma / (1+user_data['orders'])
