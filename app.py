@@ -191,7 +191,7 @@ def getAllUserKarma():
     for x in meals_served:
         user_data[x[0]]['meals_served'] = x[1]
 
-    user_data = [(calculate_karma(d), d) for d in user_data.values()]
+    user_data = [(calculate_karma(d)+1e-6*i, d) for i,d in enumerate(user_data.values())] # Add tiny amounts of karma to differentiate users with identical karma
     user_data = sorted(user_data, reverse=True)
     return user_data
 
