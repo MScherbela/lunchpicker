@@ -367,7 +367,7 @@ def sendOrderSummaryPastaDay(responsible_user):
         User.id == DishChoice.user_id).filter(
         DishChoice.date == datetime.date.today()).filter(
         DishChoice.status == 1).all()
-    pasta_amount = int(180 * len(joining_users))
+    pasta_amount = int(220 * len(joining_users))
     slack.sendOrderSummaryPasta(responsible_user, joining_users, pasta_amount, SLACK_BOT_TOKEN)
 
 #%% Actions in response to slack requests
