@@ -1,0 +1,11 @@
+{
+	"blocks": [
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "I got your vote: *VOTETYPE_PLACEHOLDER for RESTAURANT_PLACEHOLDER*\nYou can vote for/against multiple restaurants if you want to."
+			}
+		}
+	]
+}

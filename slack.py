@@ -75,6 +75,12 @@ def sendRestaurantOptionsMessage(restaurants, leading_restaurant, channel_name, 
     return sendMessageToChannel(channel, msg, token, f"How about lunch from {leading_restaurant.name}?")
 
 
+def sendVoteConfirmation(user, vote_type, restaurant_name, token):
+    msg = copy.deepcopy(MESSAGE_TEMPLATES['vote_confirmation'])
+    msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('VOTETYPE_PLACEHOLDER', vote_type).replace('RESTAURANT_PLACEHOLDER', restaurant_name)
+    return sendMessageToUser(user, msg, token, text="Vote registered.")
+
+
 def sendLunchConfirmation(user, dish_name, token):
     msg = copy.deepcopy(MESSAGE_TEMPLATES['lunch_confirmation'])
     msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('DISH_PLACEHOLDER', dish_name)
