@@ -11,6 +11,7 @@
                 <th scope="col">...of which Pasta Day</th>
                 <th scope="col">Meals served</th>
                 <th scope="col">Meals consumed</th>
+                <th scope="col">Credit</th>
                 <th scope="col">Karma ratio</th>
             </tr>
             </thead>
@@ -28,6 +29,7 @@
             <td>{{ d[1]['pasta_contributions'] }}</td>
             <td>{{ d[1]['meals_served'] }}</td>
             <td>{{ d[1]['orders'] }}</td>
+            <td>{{ 'EUR {:+.2f}'.format(d[1]['credit']/100) }}</td>
             <td><b>{{ '{:.1f}'.format(d[0]) }}</b></td>
             </tr>
             {% endfor %}

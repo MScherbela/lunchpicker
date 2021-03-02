@@ -42,7 +42,7 @@ class ProtectedAdminIndexView(AdminIndexView):
 
 class UserView(ProtectedModelView):
     column_hide_backrefs = False
-    column_list = ('first_name', 'last_name', 'dishes')
+    # column_list = ('first_name', 'last_name', 'dishes')
 
 
 class DishView(ProtectedModelView):

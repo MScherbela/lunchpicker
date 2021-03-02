@@ -32,6 +32,8 @@ class User(db.Model):
     slack_id = db.Column(db.String(256))
     active = db.Column(db.Boolean, default=True)
     vegetarian = db.Column(db.Boolean, default=False)
+    is_bot = db.Column(db.Boolean, default=False)
+    credit = db.Column(db.Integer, default=0)
 
     def get_full_name(self):
         return self.first_name + " " + self.last_name
@@ -47,6 +49,7 @@ class Dish(db.Model):
     restaurant_id = db.Column(db.Integer, db.ForeignKey('restaurant.id'), nullable=False)
     vegetarian = db.Column(db.Boolean, default=False)
     is_default = db.Column(db.Boolean, default=False)
+    price = db.Column(db.Integer, default=0)
 
     def __repr__(self):
         return f"{self.name} ({self.restaurant})"

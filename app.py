@@ -70,7 +70,7 @@ def getUsersWithConfirmedOrder(date=None):
 
 
 def getActiveUsers():
-    return User.query.filter_by(active=True).all()
+    return User.query.filter_by(active=True, is_bot=False).all()
 
 
 def getActiveRestaurants():
@@ -93,6 +93,17 @@ def getPossibleDishes(user, restaurant):
         Dish.restaurant_id == restaurant.id).all()
 
 
+def is_pasta_day(date):
+    choice = RestaurantChoice.query.filter_by(date=date).first()
+    if choice is None:
+        return None
+    else:
+        return choice.restaurant.name == 'Pasta Day'
+
+def get_pastabot():
+    return User.query.filter_by(first_name='Pasta Bot').first()
+
+
 # %% Setter Methods
 def addUserIfNotExists(user_data):
     user = User.query.filter_by(slack_id=user_data['id']).first()
@@ -110,27 +121,14 @@ def addUserIfNotExists(user_data):
     db.session.commit()
     return user
 
-def addDish(dish_name, user, restaurant, confirm_choice):
-    dish = Dish(name=dish_name, restaurant_id=restaurant.id)
+def addDish(dish_name, dish_price, user, restaurant, confirm_choice):
+    dish = Dish(name=dish_name, restaurant_id=restaurant.id, dish_price=dish_price)
     db.session.add(dish)
     db.session.commit()
     db.session.add(UserDishWeight(user_id=user.id, dish_id=dish.id))
     db.session.commit()
     if confirm_choice:
         setUserChoice(user.id, dish.id)
-
-
-def setRestaurantSchedule(date, restaurant_id):
-    choice = RestaurantChoice.query.filter_by(date=date).first()
-    if (choice is not None) and choice.restaurant_id == restaurant_id:
-        return  # Already same restaurant selected; nothing to do
-    if choice is None:
-        choice = RestaurantChoice(date=date, restaurant_id=restaurant_id)
-        db.session.add(choice)
-    else:
-        choice.restaurant_id = restaurant_id
-    db.session.commit()
-    selectDishesRandomly(Restaurant.query.get(restaurant_id), date)
 
 
 def updateDishWeights():
@@ -156,13 +154,12 @@ def calculate_karma(user_data):
     karma += user_data['contributions']
     karma += user_data['pasta_contributions'] # Pasta counts 2x (it's already included once in regular contributions)
     karma += user_data['meals_served'] * 0.2  # Give additional karma for serving large groups
-    return 10.0 * karma / (1+user_data['orders'])
+    return 10.0 * karma / (1+user_data['orders']) + user_data['credit'] / 1000 # +1 karma for every 10 EUR (1000 cent)
 
 def getAllUserKarma():
-    all_user_ids = db.session.query(User.id).all()
-    all_user_ids = [x[0] for x in all_user_ids]
+    all_users = User.query.filter_by(is_bot=False).all()
 
-    user_data = {id:dict(id=id, orders=0, contributions=0, pasta_contributions=0, meals_served=0) for id in all_user_ids}
+    user_data = {u.id:dict(id=u.id, orders=0, contributions=0, pasta_contributions=0, meals_served=0, credit=u.credit) for u in all_users}
     for user_id in user_data:
         user_data[user_id]['name'] = User.query.get(user_id).get_full_name()
 
@@ -234,12 +231,26 @@ def castBotVoteForRestaurant(date=None, prevent_revote=True):
     return r
 
 
-# def proposeRestaurantSchedule():
-#     for d in range(7):
-#         date = datetime.date.today() + datetime.timedelta(days=d)
-#         if date.weekday() < 5:  # Mo-Fr
-#             castBotVoteForRestaurant(date)
+def update_credits(paying_user):
+    date = datetime.date.today()
+    if is_pasta_day(date):
+        paying_user = get_pastabot()
 
+    orders = db.session.query(Dish.price, User).filter(
+        DishChoice.dish_id == Dish.id).filter(
+        DishChoice.user_id == User.id).filter(
+        DishChoice.date == date).filter(
+        DishChoice.status == 1).all()
+
+    for price, user in orders:
+        transfer_credits(user, paying_user, price)
+    db.session.commit()
+
+def transfer_credits(sending_user, receiving_user, amount_in_cents):
+    sending_user.credit -= amount_in_cents
+    receiving_user.credit += amount_in_cents
+    logger.debug(f"Transfering {amount_in_cents} credits from {sending_user.first_name} to {receiving_user.first_name}.")
+    db.session.commit()
 
 def getLeadingRestaurant(date):
     castBotVoteForRestaurant(date, prevent_revote=True) # ensure at least 1 vote
@@ -343,10 +354,9 @@ def sendLunchProposalToAll():
 
 def sendOrderSummary(responsible_user=None):
     date = datetime.date.today()
-    restaurant = getTodaysRestaurant()
     if responsible_user is None:
         responsible_user = selectOrderer(date, confirm_sendout=True)
-    if restaurant.name == 'Pasta Day':
+    if is_pasta_day(date):
         sendOrderSummaryPastaDay(responsible_user)
         logger.info(f"Sent pasta instructions to: {responsible_user.first_name}")
     else:
@@ -359,9 +369,11 @@ def sendOrderSummary(responsible_user=None):
         if len(orders) == 0:
             return
 
-        slack.sendOrderSummary(responsible_user, orders, getTodaysRestaurant().name, SLACK_BOT_TOKEN)
-        logger.info(f"Sent lunch order summary to: {responsible_user.first_name}")
-    
+    slack.sendOrderSummary(responsible_user, orders, getTodaysRestaurant().name, SLACK_BOT_TOKEN)
+    logger.info(f"Sent lunch order summary to: {responsible_user.first_name}")
+    update_credits()
+
+
 def sendOrderSummaryPastaDay(responsible_user):
     joining_users = db.session.query(User).filter(
         User.id == DishChoice.user_id).filter(
@@ -371,7 +383,6 @@ def sendOrderSummaryPastaDay(responsible_user):
     slack.sendOrderSummaryPasta(responsible_user, joining_users, pasta_amount, SLACK_BOT_TOKEN)
 
 #%% Actions in response to slack requests
-
 def action_subscribe(payload, user):
     user.active = True
     db.session.commit()
@@ -469,25 +480,6 @@ def test():
     return flask.render_template('test.html')
 
 
-@app.route('/schedule', methods=['GET', 'POST'])
-@basic_auth.required
-def schedule():
-    if flask.request.method == 'POST':
-        form = flask.request.form
-        date = datetime.date.fromisoformat(form['date'])
-        setRestaurantSchedule(date, int(form['restaurant']))
-
-    restaurant_choices = RestaurantChoice.query.order_by(RestaurantChoice.date).all()
-    restaurants = getActiveRestaurants()
-
-    table_rows = []
-    for choice in restaurant_choices:
-        restaurant_options = [dict(id=r.id, name=r.name, selected=(r.id == choice.restaurant_id)) for r in restaurants]
-        table_rows.append(dict(date=choice.date, restaurants=restaurant_options))
-
-    return flask.render_template("schedule.html", table_rows=table_rows)
-
-
 @app.route('/restaurant_votes')
 def restaurant_votes():
     results = db.session.query(RestaurantVote.restaurant_id,
@@ -544,11 +536,31 @@ def profile(user_id):
     user = User.query.get(user_id)
     if flask.request.method == 'POST':
         dish_name = flask.request.form['dish_name']
+        dish_price = flask.request.form['dish_price'] * 100
         if len(dish_name) > 0:
-            addDish(dish_name, user, restaurant, confirm_choice=True)
+            addDish(dish_name, dish_price, user, restaurant, confirm_choice=True)
             flask.flash(f"Added dish {dish_name} and selected it for today")
             slack.sendLunchConfirmation(user, dish_name, SLACK_BOT_TOKEN)
     return flask.render_template('profile.html', user_name=user.first_name, restaurant=restaurant.name)
+
+
+# No basic auth right now for UX-reasons: Should probably be changed at some point
+@app.route('/transaction', methods=['GET', 'POST'])
+def transaction():
+    if flask.request.method == 'POST':
+        sender_id = flask.request.form['user1']
+        receiver_id = flask.request.form['user2']
+        amount = float(flask.request.form['amount']) * 100
+        sender, receiver = User.query.get(sender_id), User.query.get(receiver_id)
+
+        # This seems backwards but is correct: The one sending the money, is receivng the credits
+        transfer_credits(receiver, sender, amount)
+        sender = User.query.get(sender_id) # re-reading after db-changes
+        flask.flash(f"Transferred {amount/100:.2f} credits from {receiver.first_name} to {sender.first_name}. Your new credit balance is now {sender.credit/100:.2f} EUR")
+
+    user_list = User.query.all()
+    user_list = [(u.id, u.get_full_name()) for u in user_list]
+    return flask.render_template('transaction.html', users=user_list)
 
 
 @app.route('/api', methods=['POST'])
