@@ -243,14 +243,19 @@ def update_credits(paying_user):
         DishChoice.status == 1).all()
 
     for price, user in orders:
-        transfer_credits(user, paying_user, price)
+        transfer_credits(user, paying_user, price, "Lunch order")
     db.session.commit()
 
-def transfer_credits(sending_user, receiving_user, amount_in_cents):
+def transfer_credits(sending_user, receiving_user, amount_in_cents, comment=None):
     sending_user.credit -= amount_in_cents
     receiving_user.credit += amount_in_cents
-    logger.debug(f"Transfering {amount_in_cents} credits from {sending_user.first_name} to {receiving_user.first_name}.")
+    date = datetime.date.today()
+    transaction = CreditTransaction(sender_id=sending_user.id, receiver_id=receiving_user.id, amount=amount_in_cents,
+                                    date=date, status=1, comment=comment)
+    db.session.add(transaction)
     db.session.commit()
+    logger.debug(f"Transferred {amount_in_cents} credits from {sending_user.first_name} to {receiving_user.first_name}: {comment if comment is not None else ''}")
+
 
 def getLeadingRestaurant(date):
     castBotVoteForRestaurant(date, prevent_revote=True) # ensure at least 1 vote
@@ -550,11 +555,12 @@ def transaction():
     if flask.request.method == 'POST':
         sender_id = flask.request.form['user1']
         receiver_id = flask.request.form['user2']
+        comment = flask.request.form['comment']
         amount = float(flask.request.form['amount']) * 100
         sender, receiver = User.query.get(sender_id), User.query.get(receiver_id)
 
         # This seems backwards but is correct: The one sending the money, is receivng the credits
-        transfer_credits(receiver, sender, amount)
+        transfer_credits(receiver, sender, amount, comment)
         sender = User.query.get(sender_id) # re-reading after db-changes
         flask.flash(f"Transferred {amount/100:.2f} credits from {receiver.first_name} to {sender.first_name}. Your new credit balance is now {sender.credit/100:.2f} EUR")
 

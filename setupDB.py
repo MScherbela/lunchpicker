@@ -46,10 +46,10 @@ with app.app_context():
     addRestaurant('Oishi', [('Ricebowl: Red Curry Tofu + Misosuppe', True, 750),
                             ('Bento: Crispy Chicken + Misosuppe', False, 790),
                             ('Bento: Fastenspeise + Misosuppe', True, 790)], weight=2.0)
-    addRestaurant('Bio Frische', [('Dal Makhni', True, 1050), ('Butter Chicken', False, 1050), ('Chicken Korma', False, 1050)])
+    addRestaurant('Bio Frische', [('Dal Makhni (medium spicy)', True, 1050), ('Butter Chicken (medium spicy)', False, 1050), ('Chicken Korma (medium spicy)', False, 1050)])
     addRestaurant('Fladerei', [('Tagesfladen (veg.)', True, 710)], active=False)
     addRestaurant('Pasta Day', [('Unlimited Pasta', True, 300)], active=True)
-    addRestaurant('Sägewerk', [('Large Pizza: Champignons + Paprika + Artischocken + Ruccola', True, 990)], weight=0.5)
+    addRestaurant('Sägewerk', [('Large Pizza: Champignons + Paprika + Artischocken + Ruccola', True, 990)], active=False, weight=0.5)
     addRestaurant('Pizzeria Riva', [('Pizza Margharita', True, 890)], weight=0.5)
     
     addUser('Michael', 'Scherbela', False, True)

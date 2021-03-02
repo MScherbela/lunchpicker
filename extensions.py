@@ -66,3 +66,4 @@ def add_admin_views():
     admin.add_view(ProtectedModelView(RestaurantVote, db.session))
     admin.add_view(ProtectedModelView(OrdererChoice, db.session))
     admin.add_view(ProtectedModelView(UserDishWeight, db.session))
+    admin.add_view(ProtectedModelView(CreditTransaction, db.session))

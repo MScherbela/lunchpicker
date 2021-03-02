@@ -41,6 +41,20 @@ class User(db.Model):
     def __repr__(self):
         return f"{self.first_name} {self.last_name}"
 
+class CreditTransaction(db.Model):
+    __tablename__ = 'credit_transaction'
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    sender = db.relationship('User', foreign_keys=[sender_id])
+    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    receiver = db.relationship('User', foreign_keys=[receiver_id])
+    amount = db.Column(db.Integer, nullable=False)
+    comment = db.Column(db.String(256))
+    date = db.Column(db.Date)
+    status = db.Column(db.Integer, default=0)
+
+    def __repr__(self):
+        return f"{self.sender.first_name} -> {self.receiver.last_name}; {self.amount} cents; {self.date}"
 
 class Dish(db.Model):
     __tablename__ = 'dish'
