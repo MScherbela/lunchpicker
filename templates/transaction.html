@@ -2,40 +2,84 @@
 
 {% block content %}
     <div class="container">
-        <h2>Register transaction</h2>
-        <p>Use this form to register monetary transaction between yourself and another user. If you have bought pasta, please choose the Pasta Bot as the receiver.
-            <b>Only submit this form once you've actually transferred the money!</b>
-        </p>
-        <div>
-            <form action="" method="post">
-                <div class="form-group">
-                    <label for="user1">Your name</label>
-                    <select class="form-control" id="user1" name="user1">
-                        <option value="" selected disabled>Select sender (yourself)...</option>
-                        {% for user_id, user_name in users %}
-                            <option value={{ user_id }}>{{ user_name }}</option>
-                        {% endfor %}
-                    </select>
+        <div class="my-4">
+            <h2>What do you want to record?</h2>
+        </div>
+        <div class="card-deck">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">I bought pasta</h4>
+                    <h6 class="card-subtitle mb-2 text-muted">or other common goods</h6>
                 </div>
-                <div class="form-group">
-                    <label for="user2">Receiver</label>
-                    <select class="form-control" id="user2" name="user2">
-                        <option value="" selected disabled>Select receiver...</option>
-                        {% for user_id, user_name in users %}
-                            <option value={{ user_id }}>{{ user_name }}</option>
-                        {% endfor %}
-                    </select>
+                <div class="card-body">
+
+                    <form action="" method="post">
+                        <input type="hidden" name="form_type" value="pasta_purchase">
+                        <div class="form-group">
+                            <label for="user1">Your name</label>
+                            <select class="form-control" id="user1" name="user1">
+                                <option value="" selected disabled>Select...</option>
+                                {% for user_id, user_name in users %}
+                                    <option value={{ user_id }}>{{ user_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="amount">Cost</label>
+                            <input type="number" step="0.01" class="form-control" id="amount" name="amount"
+                                   placeholder="in EUR" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="comment">Comment</label>
+                            <input type="text" class="form-control" id="comment" name="comment"
+                                   placeholder="Optional">
+                        </div>
+                        <input type="submit" class="btn btn-primary" name='submit' value="Record purchase"/>
+                    </form>
                 </div>
-                <div class="form-group">
-                    <label for="amount">Amount transferred</label>
-                    <input type="number" step="0.01" class="form-control" id="amount" name="amount" placeholder="Amount in EUR" required>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">I gave money to someone</h4>
+                    <h6 class="card-subtitle mb-2 text-muted">e.g. to balance credit</h6>
                 </div>
-                <div class="form-group">
-                    <label for="comment">Comment</label>
-                    <input type="text" class="form-control" id="comment" name="comment" placeholder="Add a comment for documentation ...">
+                <div class="card-body">
+
+                    <form action="" method="post">
+                        <input type="hidden" name="form_type" value="money_transfer">
+                        <div class="form-group">
+                            <label for="user1">Your name</label>
+                            <select class="form-control" id="user1" name="user1">
+                                <option value="" selected disabled>Select...</option>
+                                {% for user_id, user_name in users %}
+                                    <option value={{ user_id }}>{{ user_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="user2">Receiver</label>
+                            <select class="form-control" id="user2" name="user2">
+                                <option value="" selected disabled>Select...</option>
+                                {% for user_id, user_name in users %}
+                                    <option value={{ user_id }}>{{ user_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="amount">Amount transferred</label>
+                            <input type="number" step="0.01" class="form-control" id="amount" name="amount"
+                                   placeholder="in EUR" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="comment">Comment</label>
+                            <input type="text" class="form-control" id="comment" name="comment"
+                                   placeholder="Optional">
+                        </div>
+                        <input type="submit" class="btn btn-primary" name='submit' value="Record transaction" onclick="return confirm('Only submit once you have actually transferred the money. Have you?')"/>
+                    </form>
                 </div>
-                <input type="submit" class="btn btn-danger" name='submit' value="Record transaction"/>
-            </form>
+            </div>
         </div>
     </div>
 {% endblock %}

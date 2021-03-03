@@ -553,15 +553,18 @@ def profile(user_id):
 @app.route('/transaction', methods=['GET', 'POST'])
 def transaction():
     if flask.request.method == 'POST':
-        sender_id = flask.request.form['user1']
-        receiver_id = flask.request.form['user2']
+        sender = User.query.get(flask.request.form['user1'])
         comment = flask.request.form['comment']
         amount = float(flask.request.form['amount']) * 100
-        sender, receiver = User.query.get(sender_id), User.query.get(receiver_id)
+        if flask.request.form['form_type'] == 'pasta_purchase':
+            receiver = get_pastabot()
+        elif flask.request.form['form_type'] == 'money_transfer':
+            receiver = User.query.get(flask.request.form['user2'])
+        else:
+            raise ValueError("Invalid form type for transaction")
 
         # This seems backwards but is correct: The one sending the money, is receivng the credits
         transfer_credits(receiver, sender, amount, comment)
-        sender = User.query.get(sender_id) # re-reading after db-changes
         flask.flash(f"Transferred {amount/100:.2f} credits from {receiver.first_name} to {sender.first_name}. Your new credit balance is now {sender.credit/100:.2f} EUR")
 
     user_list = User.query.all()
