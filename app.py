@@ -373,9 +373,8 @@ def sendOrderSummary(responsible_user=None):
         orders = [(o[0].name, o[1].first_name) for o in orders]
         if len(orders) == 0:
             return
-
-    slack.sendOrderSummary(responsible_user, orders, getTodaysRestaurant().name, SLACK_BOT_TOKEN)
-    logger.info(f"Sent lunch order summary to: {responsible_user.first_name}")
+        slack.sendOrderSummary(responsible_user, orders, getTodaysRestaurant().name, SLACK_BOT_TOKEN)
+        logger.info(f"Sent lunch order summary to: {responsible_user.first_name}")
     update_credits()
 
 
