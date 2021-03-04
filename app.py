@@ -103,6 +103,9 @@ def is_pasta_day(date):
 def get_pastabot():
     return User.query.filter_by(first_name='Pasta Bot').first()
 
+def get_orderer():
+    return OrdererChoice.query.filter_by(date=datetime.date.today()).first().user
+
 
 # %% Setter Methods
 def addUserIfNotExists(user_data):
@@ -231,10 +234,12 @@ def castBotVoteForRestaurant(date=None, prevent_revote=True):
     return r
 
 
-def update_credits(paying_user):
+def update_credits():
     date = datetime.date.today()
     if is_pasta_day(date):
         paying_user = get_pastabot()
+    else:
+        paying_user = get_orderer()
 
     orders = db.session.query(Dish.price, User).filter(
         DishChoice.dish_id == Dish.id).filter(
@@ -449,9 +454,8 @@ def test():
         if 'choose_restaurant' in flask.request.form.keys():
             selectRestaurant()
             return flask.redirect('/')
-        elif 'choose_5_restaurants' in flask.request.form.keys():
-            proposeRestaurantSchedule()
-            return flask.redirect('/restaurant_schedule')
+        elif 'update_credit' in flask.request.form.keys():
+            update_credits()
         elif 'send_slack' in flask.request.form.keys():
             user = User.query.filter_by(last_name='Scherbela').first()
             r = sendLunchProposal(user)
