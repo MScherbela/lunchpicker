@@ -375,7 +375,7 @@ def sendOrderSummary(responsible_user=None):
             DishChoice.user_id == User.id).filter(
             DishChoice.date == date).filter(
             DishChoice.status == 1).order_by(Dish.name).all()
-        orders = [(o[0].name, o[1].first_name) for o in orders]
+        orders = [(o[0].name, o[0].price, o[1].first_name) for o in orders]
         if len(orders) == 0:
             return
         slack.sendOrderSummary(responsible_user, orders, getTodaysRestaurant().name, SLACK_BOT_TOKEN)
