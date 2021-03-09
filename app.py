@@ -125,7 +125,7 @@ def addUserIfNotExists(user_data):
     return user
 
 def addDish(dish_name, dish_price, user, restaurant, confirm_choice):
-    dish = Dish(name=dish_name, restaurant_id=restaurant.id, dish_price=dish_price)
+    dish = Dish(name=dish_name, restaurant_id=restaurant.id, price=dish_price)
     db.session.add(dish)
     db.session.commit()
     db.session.add(UserDishWeight(user_id=user.id, dish_id=dish.id))
@@ -544,7 +544,7 @@ def profile(user_id):
     user = User.query.get(user_id)
     if flask.request.method == 'POST':
         dish_name = flask.request.form['dish_name']
-        dish_price = flask.request.form['dish_price'] * 100
+        dish_price = float(flask.request.form['dish_price']) * 100
         if len(dish_name) > 0:
             addDish(dish_name, dish_price, user, restaurant, confirm_choice=True)
             flask.flash(f"Added dish {dish_name} and selected it for today")
