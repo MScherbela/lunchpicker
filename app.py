@@ -133,6 +133,19 @@ def addDish(dish_name, dish_price, user, restaurant, confirm_choice):
     if confirm_choice:
         setUserChoice(user.id, dish.id)
 
+def add_restaurant(restaurant_name, restaurant_contacts, default_dish_name, default_dish_price):
+    restaurant = Restaurant(name=restaurant_name, url=restaurant_contacts, active=True)
+    db.session.add(restaurant)
+    db.session.commit()
+    dish = Dish(name=default_dish_name, restaurant_id=restaurant.id, vegetarian=True, is_default=True, price=default_dish_price)
+    db.session.add(dish)
+    db.session.commit()
+    for user in User.query.all():
+        if not user.is_bot:
+            db.session.add(UserDishWeight(user_id=user.id, dish_id=dish.id))
+    db.session.commit()
+    logger.info(f"Added restaurant: {restaurant_name}, {restaurant_contacts}; {default_dish_name}: {default_dish_price}")
+
 
 def updateDishWeights():
     """Calculate dish preferences based on order history"""
@@ -550,6 +563,18 @@ def profile(user_id):
             flask.flash(f"Added dish {dish_name} and selected it for today")
             slack.sendLunchConfirmation(user, dish_name, SLACK_BOT_TOKEN)
     return flask.render_template('profile.html', user_name=user.first_name, restaurant=restaurant.name)
+
+
+@app.route('/add_restaurant', methods=['GET', 'POST'])
+# No basic auth right now for UX-reasons
+def add_restaurant_view():
+    if flask.request.method == 'POST':
+        name, url, dish_name, dish_price = [flask.request.form[k] for k in ["name", "url", "dish_name", "dish_price"]]
+        dish_price = int(float(dish_price) * 100)
+        if (len(name) > 0) and (len(dish_name) > 0):
+            add_restaurant(name, url, dish_name, dish_price)
+            flask.flash(f"Thanks for adding this restaurant: {name}")
+    return flask.render_template('add_restaurant.html')
 
 
 # No basic auth right now for UX-reasons: Should probably be changed at some point

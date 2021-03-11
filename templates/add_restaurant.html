@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="container">
+        <h4>Propose a new restaurant</h4>
+        <div>
+            <form action="" method="post">
+                <div class="form-group">
+                    <label for="name">Restaurant name</label>
+                    <input type="text" class="form-control" id="name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="url">Contact details (website or telephone nr)</label>
+                    <input type="text" class="form-control" id="url" name="url">
+                </div>
+                <div class="form-group">
+                    <label for="dish_name">Proposed default dish</label>
+                    <input type="text" class="form-control" id="dish_name" placeholder="Vegetarian default option preferred..." name="dish_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="dish_price">Proposed default dish</label>
+                    <input ype="number" step="0.01" class="form-control" id="dish_price" placeholder="in EUR" name="dish_price" required>
+                </div>
+                <input type="submit" class="btn btn-primary" name='submit' value="Add restaurant"/>
+            </form>
+        </div>
+    </div>
+{% endblock %}
