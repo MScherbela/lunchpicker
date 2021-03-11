@@ -4,7 +4,7 @@
 			"type": "section",
 			"text": {
 				"type": "mrkdwn",
-				"text": "Unfortunately, you didn't order in time, and it might now be too late.\nCheck with ORDERER_NAME, who's in charge of ordering today, whether you can still be included."
+				"text": "Unfortunately, you didn't order in time, and it might now be too late.\nCheck with ORDERER_NAME, who's in charge of ordering today, whether you can still be included. Your order has not been stored, and now credits have been transferred."
 			}
 		}
 	]

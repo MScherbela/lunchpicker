@@ -420,12 +420,13 @@ def action_unsubscribe(payload, user):
 
 
 def action_select_dish(payload, user):
-    dish_id = int(payload['state']['values']['dish_selection_section']['static_select-action']['selected_option']["value"])
-    setUserChoice(user.id, dish_id)
 
     orderer_choice = OrdererChoice.query.filter_by(date=datetime.date.today(), status=1).first()
     if orderer_choice is None:
+        dish_id = int(
+            payload['state']['values']['dish_selection_section']['static_select-action']['selected_option']["value"])
         slack.sendLunchConfirmation(user, Dish.query.get(dish_id).name, SLACK_BOT_TOKEN)
+        setUserChoice(user.id, dish_id)
     else:
         slack.sendTooLateMessage(user, orderer_choice.user, SLACK_BOT_TOKEN)
 
