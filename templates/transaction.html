@@ -76,10 +76,42 @@
                             <input type="text" class="form-control" id="comment" name="comment"
                                    placeholder="Optional">
                         </div>
-                        <input type="submit" class="btn btn-primary" name='submit' value="Record transaction" onclick="return confirm('Only submit once you have actually transferred the money. Have you?')"/>
+                        <input type="submit" class="btn btn-primary" name='submit' value="Record transaction"
+                               onclick="return confirm('Only submit once you have actually transferred the money. Have you?')"/>
                     </form>
                 </div>
             </div>
+        </div>
+        <div class="my-4">
+            <h2>Transactions in last 7 days</h2>
+        </div>
+        <div>
+            <table class="table">
+                <thead>
+                <tr>
+                    <th scope="col">Date</th>
+                    <th scope="col">Credit Sender</th>
+                    <th scope="col">Credit Receiver</th>
+                    <th scope="col">Amount, in EUR</th>
+                    <th scope="col">Comment</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for row in last_transactions %}
+                    {% if row[-1] %}
+                        <tr class="table-secondary">
+                    {% else %}
+                        <tr>
+                    {% endif %}
+                        <td>{{ row[0] }}</td>
+                        <td>{{ row[1] }}</td>
+                        <td>{{ row[2] }}</td>
+                        <td>{{ "EUR {:.2f}".format(row[3]) }}</td>
+                        <td>{{ row[4] }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 {% endblock %}

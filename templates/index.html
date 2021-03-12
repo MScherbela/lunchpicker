@@ -15,7 +15,12 @@
             {% for table_row in table_rows %}
                 {% if table_row['status'] == 1 %}
                     <tr class="table-success">
-                        <td>{{ table_row['name'] }}</td>
+                        <td>
+                            {{ table_row['name'] }}
+                            {% if table_row['is_orderer'] %}
+                                <span class="badge badge-success">Ordering today</span>
+                            {% endif %}
+                        </td>
                         <td>{{ table_row['dish'] }}</td>
                         <td>Confirmed</td>
                     </tr>

@@ -104,7 +104,11 @@ def get_pastabot():
     return User.query.filter_by(first_name='Pasta Bot').first()
 
 def get_orderer():
-    return OrdererChoice.query.filter_by(date=datetime.date.today()).first().user
+    choice = OrdererChoice.query.filter_by(date=datetime.date.today()).first()
+    if choice is None:
+        return None
+    else:
+        choice.user
 
 
 # %% Setter Methods
@@ -534,9 +538,13 @@ def index():
             dish_name = choice.dish.name
         else:
             dish_name = ""
-        table_rows.append(dict(name=user.first_name + " " + user.last_name, dish=dish_name, status=choice.status))
+        table_rows.append(dict(name=user.first_name + " " + user.last_name, dish=dish_name, status=choice.status, user_id=user.id))
         confirmed_ids.add(user.id)
     table_rows = sorted(table_rows, key=lambda r: (r['status'], r['dish']))
+
+    orderer = get_orderer()
+    for r in table_rows:
+        r['is_orderer'] = (orderer is not None) and (orderer.id == r['user_id'])
 
     return flask.render_template('index.html', table_rows=table_rows,
                                  restaurant=restaurant.name)
@@ -598,7 +606,20 @@ def transaction():
 
     user_list = User.query.all()
     user_list = [(u.id, u.get_full_name()) for u in user_list]
-    return flask.render_template('transaction.html', users=user_list)
+
+    transactions = CreditTransaction.query.filter(
+        CreditTransaction.date >= datetime.date.today() - datetime.timedelta(days=7)).order_by(
+        CreditTransaction.date.desc()).all()
+    transaction_table = [[t.date, t.sender.get_full_name(), t.receiver.get_full_name(), t.amount / 100.0, t.comment, False] for t in transactions]
+    transaction_table = [t for t in transaction_table if t[0] != t[1]] # ignore transactions to yourself
+
+    # Shade rows alternatingly every day
+    shade_row = False
+    for i in range(1, len(transaction_table)):
+        if transaction_table[i][0] != transaction_table[i-1][0]:
+            shade_row = not shade_row
+        transaction_table[i][-1] = shade_row
+    return flask.render_template('transaction.html', users=user_list, last_transactions=transaction_table)
 
 
 @app.route('/api', methods=['POST'])
