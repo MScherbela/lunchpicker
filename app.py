@@ -108,7 +108,7 @@ def get_orderer():
     if choice is None:
         return None
     else:
-        choice.user
+        return choice.user
 
 
 # %% Setter Methods
