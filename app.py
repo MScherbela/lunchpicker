@@ -540,11 +540,11 @@ def index():
             dish_name = ""
         table_rows.append(dict(name=user.first_name + " " + user.last_name, dish=dish_name, status=choice.status, user_id=user.id))
         confirmed_ids.add(user.id)
-    table_rows = sorted(table_rows, key=lambda r: (r['status'], r['dish']))
 
     orderer = get_orderer()
     for r in table_rows:
         r['is_orderer'] = (orderer is not None) and (orderer.id == r['user_id'])
+    table_rows = sorted(table_rows, key=lambda r: (r['status'], not r['is_orderer'], r['dish']))
 
     return flask.render_template('index.html', table_rows=table_rows,
                                  restaurant=restaurant.name)
