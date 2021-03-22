@@ -213,7 +213,6 @@ def getAllUserKarma():
     user_data = sorted(user_data, reverse=True)
     return user_data
 
-
 def voteForRestaurant(restaurant_id, user_id, date=None, weight=None):
     if date is None:
         date = datetime.date.today()
@@ -554,7 +553,7 @@ def index():
 # No basic auth right now for UX-reasons
 def karma():
     user_data = getAllUserKarma()
-    return flask.render_template('karma.html', user_data=user_data)
+    return flask.render_template('karma.html', user_data=user_data, pasta_bot_credits=get_pastabot().credit)
 
 
 @app.route('/profile/<user_id>', methods=['GET', 'POST'])

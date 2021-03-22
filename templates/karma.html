@@ -17,23 +17,20 @@
             </thead>
             <tbody>
             {% for d in user_data %}
-                {% if loop.index0 == 0 %}
-                    <tr class="table-success">
-                {% elif loop.last %}
-                    <tr class="table-warning">
-                {% else %}
-                    <tr class="table-secondary">
-                {% endif %}
-            <td>{{ d[1]['name'] }}</td>
-            <td>{{ d[1]['contributions'] }}</td>
-            <td>{{ d[1]['pasta_contributions'] }}</td>
-            <td>{{ d[1]['meals_served'] }}</td>
-            <td>{{ d[1]['orders'] }}</td>
-            <td>{{ 'EUR {:+.2f}'.format(d[1]['credit']/100) }}</td>
-            <td><b>{{ '{:.1f}'.format(d[0]) }}</b></td>
-            </tr>
+                <tr class="table-secondary">
+                    <td>{{ d[1]['name'] }}</td>
+                    <td>{{ d[1]['contributions'] }}</td>
+                    <td>{{ d[1]['pasta_contributions'] }}</td>
+                    <td>{{ d[1]['meals_served'] }}</td>
+                    <td>{{ d[1]['orders'] }}</td>
+                    <td>{{ 'EUR {:+.2f}'.format(d[1]['credit']/100) }}</td>
+                    <td><b>{{ '{:.1f}'.format(d[0]) }}</b></td>
+                </tr>
             {% endfor %}
             </tbody>
         </table>
+        <h4>
+            <span class="badge badge-secondary">Pasta Bot Credits: {{ 'EUR {:+.2f}'.format(pasta_bot_credits/100) }}</span>
+        </h4>
     </div>
 {% endblock %}
