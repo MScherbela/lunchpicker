@@ -35,7 +35,7 @@ scheduler.start()
 def castBotVoteTask():
     with app.app_context():
         castBotVoteForRestaurant(prevent_revote=False)
-        sendRestaurantOptions('test')
+        #sendRestaurantOptions('test')
 
 
 @scheduler.task('cron', id='send_restaurant_options', minute=30, hour=9, day_of_week="mon,tue,wed,thu,fri")
