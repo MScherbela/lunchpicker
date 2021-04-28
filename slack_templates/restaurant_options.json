@@ -58,6 +58,22 @@
 			]
 		},
 		{
+			"type": "actions",
+			"block_id": "do_not_join",
+			"elements": [
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "I will not join today"
+					},
+					"style": "danger",
+					"value": "button_unsubscribe",
+					"action_id": "decline_dish"
+				}
+			]
+		},
+		{
 			"type": "divider"
 		},
 		{

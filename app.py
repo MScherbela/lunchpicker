@@ -172,14 +172,15 @@ def setUserChoice(user_id, dish_id):
 def calculate_karma(user_data):
     karma = 1.0 # Add base karma
     karma += user_data['contributions']
-    karma += user_data['pasta_contributions'] # Pasta counts 2x (it's already included once in regular contributions)
-    karma += user_data['meals_served'] * 0.2  # Give additional karma for serving large groups
+    karma += user_data['pasta_contributions']   # Pasta counts 2x (it's already included once in regular contributions)
+    karma += user_data['meals_served'] * 0.2    # Give additional karma for serving large groups
+    karma += user_data['pasta_purchases'] * 0.5 # Give (permanent) karma for buying stuff, independent of the amount of money spent
     return 10.0 * karma / (1+user_data['orders']) + user_data['credit'] / 1000 # +1 karma for every 10 EUR (1000 cent)
 
 def getAllUserKarma():
     all_users = User.query.filter_by(is_bot=False).all()
 
-    user_data = {u.id:dict(id=u.id, orders=0, contributions=0, pasta_contributions=0, meals_served=0, credit=u.credit) for u in all_users}
+    user_data = {u.id:dict(id=u.id, orders=0, contributions=0, pasta_contributions=0, meals_served=0, pasta_purchases=0, credit=u.credit) for u in all_users}
     for user_id in user_data:
         user_data[user_id]['name'] = User.query.get(user_id).get_full_name()
 
@@ -202,6 +203,13 @@ def getAllUserKarma():
     for x in pasta_contributions:
         user_data[x[0]]['pasta_contributions'] = x[1]
 
+    pasta_purchases = db.session.query(User.id, sqlfunc.count(CreditTransaction.id)).filter(
+        CreditTransaction.receiver_id == User.id,
+        CreditTransaction.sender_id == get_pastabot().id,
+        User.is_bot == False).all()
+    for x in pasta_purchases:
+        user_data[x[0]]['pasta_purchases'] = x[1]
+
     meals_served = db.session.query(User.id, sqlfunc.count(DishChoice.id)).filter(
         User.id == OrdererChoice.user_id,
         OrdererChoice.date == DishChoice.date,
@@ -213,6 +221,7 @@ def getAllUserKarma():
     user_data = sorted(user_data, reverse=True)
     return user_data
 
+
 def voteForRestaurant(restaurant_id, user_id, date=None, weight=None):
     if date is None:
         date = datetime.date.today()
@@ -222,6 +231,11 @@ def voteForRestaurant(restaurant_id, user_id, date=None, weight=None):
     RestaurantVote.query.filter_by(restaurant_id=restaurant_id, user_id=user_id, date=date).delete()
     db.session.add(RestaurantVote(restaurant_id=restaurant_id, user_id=user_id, date=date, weight=weight))
     db.session.commit()
+
+    # If the user has opted out, include him back in
+    DishChoice.query.filter_by(date=date, user_id=user_id, status=2).delete()
+    db.session.commit()
+
 
 
 def castBotVoteForRestaurant(date=None, prevent_revote=True):
@@ -372,9 +386,14 @@ def sendLunchProposal(user):
 
 def sendLunchProposalToAll():
     active_users = getActiveUsers()
+    declined_user_ids = DishChoice.query.filter_by(date=datetime.date.today(), status=2).all()
+    declined_user_ids = set([u.user_id for u in declined_user_ids])
     for user in active_users:
-        logger.info(f"Sending lunch-options to {user}")
-        print(sendLunchProposal(user))
+        if user.id in declined_user_ids:
+            logger.info(f"User {user} is not joining today. Skipping sending lunch options")
+        else:
+            logger.info(f"Sending lunch-options to {user}")
+            sendLunchProposal(user)
     return len(active_users)
 
 
