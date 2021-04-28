@@ -206,7 +206,7 @@ def getAllUserKarma():
     pasta_purchases = db.session.query(User.id, sqlfunc.count(CreditTransaction.id)).filter(
         CreditTransaction.receiver_id == User.id,
         CreditTransaction.sender_id == get_pastabot().id,
-        User.is_bot == False).all()
+        User.is_bot == False).group_by(User.id).all()
     for x in pasta_purchases:
         user_data[x[0]]['pasta_purchases'] = x[1]
 
