@@ -73,6 +73,12 @@ def getActiveUsers():
     return User.query.filter_by(active=True, is_bot=False).all()
 
 
+def get_users_who_do_not_join():
+    declined_user_ids = DishChoice.query.filter_by(date=datetime.date.today(), status=2).all()
+    declined_user_ids = set([u.user_id for u in declined_user_ids])
+    return declined_user_ids
+
+
 def getActiveRestaurants():
     return Restaurant.query.filter_by(active=True).all()
 
@@ -346,8 +352,14 @@ def selectDishesRandomly(restaurant, date=None):
     active_users = getActiveUsers()
     logger.debug("Restaurant: " + str(restaurant.id))
 
-    DishChoice.query.filter_by(date=date).delete()
+    # Delete DishChoices that might be potentially left over. Only keep entries that mark a "will not join today"
+    db.session.query(DishChoice).filter(DishChoice.date==date, DishChoice.dish_id != None, DishChoice.status == 2).delete()
+    db.session.commit()
+    declined_users = get_users_who_do_not_join()
     for user in active_users:
+        if user.id in declined_users:
+            logger.debug(f"Not picking a dish for user {user.get_full_name}: Already declined")
+            continue
         results = db.session.query(Dish.id, UserDishWeight.weight).filter(
             UserDishWeight.user_id == user.id).filter(
             Dish.restaurant_id == restaurant.id).filter(
@@ -386,8 +398,7 @@ def sendLunchProposal(user):
 
 def sendLunchProposalToAll():
     active_users = getActiveUsers()
-    declined_user_ids = DishChoice.query.filter_by(date=datetime.date.today(), status=2).all()
-    declined_user_ids = set([u.user_id for u in declined_user_ids])
+    declined_user_ids = get_users_who_do_not_join()
     for user in active_users:
         if user.id in declined_user_ids:
             logger.info(f"User {user} is not joining today. Skipping sending lunch options")
