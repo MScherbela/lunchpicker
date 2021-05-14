@@ -3,6 +3,7 @@ import json
 import os
 import copy
 import logging
+from instance.config import LUNCH_CHANNEL
 
 logger = logging.getLogger()
 
@@ -25,25 +26,41 @@ def loadMessage():
         data = json.load(f)
     return data
 
-def sendMessageToChannel(channel, msg, token, text=None):
+def sendMessageToChannel(channel, msg, token, text=None, ephemeral_user=None):
+    """
+    Posts a message to a slack channel.
+
+    Args:
+        channel (str): Channel id or user id for direct messages
+        msg: Message object, containin a blocks field
+        token (str): Secret auth token
+        text (str): Fallback string to show when message cannot be rendered (e.g. mobile preview)
+        ephemeral_user (str or None): If None, message is sent publicly to channel. If a user-id is specified, an ephemeral message visiable only to this user will be posted in the channel.
+
+    Returns:
+        JSON response
+    """
     if SLACK_LOCKED and channel not in ('U01BM5PTL3G', 'G01KRNNN44T'):
         logger.warning(f"Sending of slack messages has been disabled, but the bot tried to send a message to channel {channel}")
-        return
+        return None
 
-    url = 'https://slack.com/api/chat.postMessage'
     data = dict(token=token, channel=channel, blocks=json.dumps(msg['blocks']))
+    if ephemeral_user is None:
+        url = 'https://slack.com/api/chat.postMessage'
+    else:
+        url = 'https://slack.com/api/chat.postEphemeral'
+        data['user'] = ephemeral_user
     if text is not None:
         data['text'] = text
     r = requests.post(url, data=data)
     logger.debug(r.json())
     return r
 
-def sendMessageToUser(user, msg, token, text=None):
-    if user.active:
-        return sendMessageToChannel(user.slack_id, msg, token, text)
-    else:
+def sendMessageToUser(user, msg, token, text=None, ephemeral=False, channel=None):
+   if not user.active:
         logger.warning(f"Tried to send message to inactive user: {user.id}, {user.get_full_name()}. Message has NOT been sent")
-
+        return None
+    return sendMessageToChannel(user.slack_id, msg, token, text)
 
 def sendLunchOptionsMessage(user, restaurant, possible_dishes, proposed_dish, token):
     msg = copy.deepcopy(MESSAGE_TEMPLATES['lunch_options'])
@@ -84,12 +101,12 @@ def sendVoteConfirmation(user, vote_type, restaurant_name, token):
 def sendLunchConfirmation(user, dish_name, token):
     msg = copy.deepcopy(MESSAGE_TEMPLATES['lunch_confirmation'])
     msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('DISH_PLACEHOLDER', dish_name)
-    return sendMessageToUser(user, msg, token, text="Order confirmed!")
+    return sendMessageToChannel(LUNCH_CHANNEL, msg, token, text="Order confirmed!", ephemeral_user=user.slack_id)
 
 
 def sendLunchNoOrderConfirmation(user, token):
     msg = copy.deepcopy(MESSAGE_TEMPLATES['lunch_no_order_confirmation'])
-    return sendMessageToUser(user, msg, token, text="Ok, I'll not order for you.")
+    return sendMessageToChannel(LUNCH_CHANNEL, msg, token, text="Ok, I'll not order for you.", ephemeral_user=user.slack_id)
 
 
 def sendTooLateMessage(user, orderer, token):
