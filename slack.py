@@ -44,7 +44,7 @@ def sendMessageToChannel(channel, msg, token, text=None, ephemeral_user=None):
         logger.warning(f"Sending of slack messages has been disabled, but the bot tried to send a message to channel {channel}")
         return None
 
-    data = dict(token=token, channel=channel, blocks=json.dumps(msg['blocks']))
+    data = dict(token=token, channel=channel, blocks=json.dumps(msg['blocks']), link_names=True)
     if ephemeral_user is None:
         url = 'https://slack.com/api/chat.postMessage'
     else:
@@ -56,7 +56,7 @@ def sendMessageToChannel(channel, msg, token, text=None, ephemeral_user=None):
     logger.debug(r.json())
     return r
 
-def sendMessageToUser(user, msg, token, text=None, ephemeral=False, channel=None):
+def sendMessageToUser(user, msg, token, text=None):
     if not user.active:
         logger.warning(f"Tried to send message to inactive user: {user.get_full_name()}. Message has NOT been sent")
         return None
@@ -95,13 +95,13 @@ def sendRestaurantOptionsMessage(restaurants, leading_restaurant, channel_name, 
 def sendVoteConfirmation(user, vote_type, restaurant_name, token):
     msg = copy.deepcopy(MESSAGE_TEMPLATES['vote_confirmation'])
     msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('VOTETYPE_PLACEHOLDER', vote_type).replace('RESTAURANT_PLACEHOLDER', restaurant_name)
-    return sendMessageToUser(user, msg, token, text="Vote registered.")
+    return sendMessageToChannel(LUNCH_CHANNEL, user, msg, token, text="Vote registered.", ephemeral_user=user.slack_id)
 
 
 def sendLunchConfirmation(user, dish_name, token):
     msg = copy.deepcopy(MESSAGE_TEMPLATES['lunch_confirmation'])
     msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('DISH_PLACEHOLDER', dish_name)
-    return sendMessageToChannel(LUNCH_CHANNEL, msg, token, text="Order confirmed!", ephemeral_user=user.slack_id)
+    return sendMessageToUser(user.slack_id, msg, token, text="Order confirmed!")
 
 
 def sendLunchNoOrderConfirmation(user, token):
@@ -130,12 +130,12 @@ def sendUnsubscribeMessage(user, token):
 def sendOrderSummary(user, order_list, restaurant_name, token):
     """order_list ist a list of tuples, containing (dish_name, user_name)"""
     msg = copy.deepcopy(MESSAGE_TEMPLATES['order_summary'])
-    msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('NAME_PLACEHOLDER', user.first_name)
+    msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('NAME_PLACEHOLDER', f"@{user.slack_id}")
     msg['blocks'][3]['text']['text'] = msg['blocks'][3]['text']['text'].replace('RESTAURANT_PLACEHOLDER', restaurant_name)
 
     orders = [dict(value=str(i), text=dict(type="mrkdwn", text=f"*{o[0]}* ({o[2]}, EUR {o[1]/100:.2f})")) for i,o in enumerate(order_list)]
     msg['blocks'][3]['accessory']['options'] = orders
-    return sendMessageToUser(user, msg, token, text=f"Hi {user.first_name}, please take care of today's order!")
+    return sendMessageToChannel(LUNCH_CHANNEL, msg, token, text=f"Hi @{user.slack_id}, please take care of today's order!")
 
 def sendOrderSummaryPasta(user, users_joining, grams_of_pasta, token):
     """order_list ist a list of tuples, containing (dish_name, user_name)"""
