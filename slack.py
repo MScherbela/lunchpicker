@@ -66,7 +66,7 @@ def sendMessageToUser(user, msg, token, text=None):
 def sendLunchOptionsMessage(user, restaurant, possible_dishes, proposed_dish, token):
     msg = copy.deepcopy(MESSAGE_TEMPLATES['lunch_options'])
     msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('RESTAURANT_PLACEHOLDER', restaurant.name).replace('NAME_PLACEHOLDER', user.first_name)
-    msg['blocks'][1]['accessory']['options'] = [dict(text=dict(type='plain_text', text=d.name), value=str(d.id)) for d in possible_dishes]
+    msg['blocks'][1]['accessory']['options'] = [dict(text=dict(type='plain_text', text=f"{d.name} (€ {d.price / 100:.2f})"), value=str(d.id)) for d in possible_dishes]
     msg['blocks'][1]['accessory']['initial_option'] = dict(text=dict(type='plain_text', text=proposed_dish.name), value=str(proposed_dish.id))
     msg['blocks'][3]['elements'][2]['url'] = f'https://lunchbot.scherbela.com/profile/{user.id}'
     if restaurant.name == 'Pasta Day':
