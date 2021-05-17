@@ -619,19 +619,21 @@ def add_restaurant_view():
 @app.route('/transaction', methods=['GET', 'POST'])
 def transaction():
     if flask.request.method == 'POST':
-        sender = User.query.get(flask.request.form['user1'])
+        user = User.query.get(flask.request.form['user1'])
         comment = flask.request.form['comment']
         amount = float(flask.request.form['amount']) * 100
         if flask.request.form['form_type'] == 'pasta_purchase':
-            receiver = get_pastabot()
-        elif flask.request.form['form_type'] == 'money_transfer':
+            sender = get_pastabot()
+            receiver = user
+        elif flask.request.form['form_type'] == 'credit_transfer':
+            sender = user
             receiver = User.query.get(flask.request.form['user2'])
         else:
             raise ValueError("Invalid form type for transaction")
 
         # This seems backwards but is correct: The one sending the money, is receivng the credits
-        transfer_credits(receiver, sender, amount, comment)
-        flask.flash(f"Transferred {amount/100:.2f} credits from {receiver.first_name} to {sender.first_name}. Your new credit balance is now {sender.credit/100:.2f} EUR")
+        transfer_credits(sender, receiver, amount, comment)
+        flask.flash(f"Transferred {amount/100:.2f} credits from {sender.first_name} to {receiver.first_name}.")
 
     user_list = User.query.all()
     user_list = [(u.id, u.get_full_name()) for u in user_list]

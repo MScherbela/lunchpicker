@@ -41,15 +41,13 @@
 
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">I gave money to someone</h4>
-                    <h6 class="card-subtitle mb-2 text-muted">e.g. to balance credit</h6>
+                    <h4 class="card-title">Sending credits to someone</h4>
                 </div>
                 <div class="card-body">
-
                     <form action="" method="post">
-                        <input type="hidden" name="form_type" value="money_transfer">
+                        <input type="hidden" name="form_type" value="credit_transfer">
                         <div class="form-group">
-                            <label for="user1">Your name</label>
+                            <label for="user1">Credit sender (your name)</label>
                             <select class="form-control" id="user1" name="user1">
                                 <option value="" selected disabled>Select...</option>
                                 {% for user_id, user_name in users %}
@@ -58,7 +56,7 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="user2">Receiver</label>
+                            <label for="user2">Credit receiver</label>
                             <select class="form-control" id="user2" name="user2">
                                 <option value="" selected disabled>Select...</option>
                                 {% for user_id, user_name in users %}
@@ -67,7 +65,7 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="amount">Amount transferred</label>
+                            <label for="amount">Amount</label>
                             <input type="number" step="0.01" class="form-control" id="amount" name="amount"
                                    placeholder="in EUR" required>
                         </div>
@@ -76,8 +74,7 @@
                             <input type="text" class="form-control" id="comment" name="comment"
                                    placeholder="Optional">
                         </div>
-                        <input type="submit" class="btn btn-primary" name='submit' value="Record transaction"
-                               onclick="return confirm('Only submit once you have actually transferred the money. Have you?')"/>
+                        <input type="submit" class="btn btn-primary" name='submit' value="Record transaction"/>
                     </form>
                 </div>
             </div>
