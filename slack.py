@@ -136,7 +136,7 @@ def sendOrderSummary(user, order_list, restaurant_name, token):
 
     orders = [dict(value=str(i), text=dict(type="mrkdwn", text=f"*{o[0]}* ({o[2]}, EUR {o[1]/100:.2f})")) for i,o in enumerate(order_list)]
     msg['blocks'][3]['accessory']['options'] = orders
-    return sendMessageToChannel(LUNCH_CHANNEL, msg, token, text=f"Hi @{user.slack_id}, please take care of today's order!")
+    return sendMessageToChannel(LUNCH_CHANNEL, msg, token, text=f"Hi <@{user.slack_id}>, please take care of today's order!")
 
 def sendOrderSummaryPasta(user, users_joining, grams_of_pasta, token):
     """order_list ist a list of tuples, containing (dish_name, user_name)"""

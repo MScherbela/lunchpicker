@@ -283,8 +283,9 @@ def update_credits():
         DishChoice.date == date).filter(
         DishChoice.status == 1).all()
 
+    restaurant = getTodaysRestaurant()
     for price, user in orders:
-        transfer_credits(user, paying_user, price, "Lunch order")
+        transfer_credits(user, paying_user, price, f"Lunch order {restaurant.name}")
     db.session.commit()
 
 def transfer_credits(sending_user, receiving_user, amount_in_cents, comment=None):
