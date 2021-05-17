@@ -101,7 +101,7 @@ def sendVoteConfirmation(user, vote_type, restaurant_name, token):
 def sendLunchConfirmation(user, dish_name, token):
     msg = copy.deepcopy(MESSAGE_TEMPLATES['lunch_confirmation'])
     msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('DISH_PLACEHOLDER', dish_name)
-    return sendMessageToUser(user.slack_id, msg, token, text="Order confirmed!")
+    return sendMessageToUser(user, msg, token, text="Order confirmed!")
 
 
 def sendLunchNoOrderConfirmation(user, token):
