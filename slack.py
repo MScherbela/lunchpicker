@@ -95,7 +95,7 @@ def sendRestaurantOptionsMessage(restaurants, leading_restaurant, channel_name, 
 def sendVoteConfirmation(user, vote_type, restaurant_name, token):
     msg = copy.deepcopy(MESSAGE_TEMPLATES['vote_confirmation'])
     msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('VOTETYPE_PLACEHOLDER', vote_type).replace('RESTAURANT_PLACEHOLDER', restaurant_name)
-    return sendMessageToChannel(LUNCH_CHANNEL, user, msg, token, text="Vote registered.", ephemeral_user=user.slack_id)
+    return sendMessageToChannel(LUNCH_CHANNEL, msg, token, text="Vote registered.", ephemeral_user=user.slack_id)
 
 
 def sendLunchConfirmation(user, dish_name, token):
