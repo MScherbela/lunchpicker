@@ -132,7 +132,7 @@ def sendUnsubscribeMessage(user, token):
 def sendOrderSummary(user, order_list, restaurant_name, token):
     """order_list ist a list of tuples, containing (dish_name, user_name)"""
     msg = copy.deepcopy(MESSAGE_TEMPLATES['order_summary'])
-    msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('NAME_PLACEHOLDER', f"@{user.slack_id}")
+    msg['blocks'][0]['text']['text'] = msg['blocks'][0]['text']['text'].replace('NAME_PLACEHOLDER', f"<@{user.slack_id}>")
     msg['blocks'][3]['text']['text'] = msg['blocks'][3]['text']['text'].replace('RESTAURANT_PLACEHOLDER', restaurant_name)
 
     orders = [dict(value=str(i), text=dict(type="mrkdwn", text=f"*{o[0]}* ({o[2]}, EUR {o[1]/100:.2f})")) for i,o in enumerate(order_list)]
