@@ -53,8 +53,11 @@ def sendMessageToChannel(channel, msg, token, text=None, ephemeral_user=None):
     if text is not None:
         data['text'] = text
     logger.debug(f"Slack request: {url}, {data}")
-    r = requests.post(url, data=data)
-    logger.debug(r.json())
+    try:
+        r = requests.post(url, data=data)
+        logger.debug(r.json())
+    except Exception as e:
+        logger.error(str(e))
     return r
 
 def sendMessageToUser(user, msg, token, text=None):
