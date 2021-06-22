@@ -122,11 +122,12 @@ def addUserIfNotExists(user_data):
     user = User.query.filter_by(slack_id=user_data['id']).first()
     if user is None:
         first, last = user_data['name'].split('.')
+        logger.info(f"Adding new user: {first} {last}, {user_data['id']}")
         user = User(first_name=first.title(), last_name=last.title(), slack_id=user_data['id'], active=True)
         db.session.add(user)
         db.session.commit()
 
-        default_dishes = Dish.query.filter_by(default=True).all()
+        default_dishes = Dish.query.filter_by(is_default=True).all()
         for d in default_dishes:
             db.session.add(UserDishWeight(user_id=user.id, dish_id=d.id, weight=0.1))
     else:
