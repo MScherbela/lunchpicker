@@ -524,6 +524,9 @@ def test():
         elif 'send_slack_lukas' in flask.request.form.keys():
             user = User.query.filter_by(last_name='Liehr').first()
             sendLunchProposal(user)
+        elif 'send_slack_sebastian' in flask.request.form.keys():
+            user = User.query.filter_by(first_name='Sebastian').first()
+            sendLunchProposal(user)
         elif 'send_order_summary' in flask.request.form.keys():
             sendOrderSummary()
         elif 'update_dish_weights' in flask.request.form.keys():
