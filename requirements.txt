@@ -8,3 +8,4 @@ flask-wtf
 flask-basicauth
 flask-apscheduler
 requests
+retry

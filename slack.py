@@ -4,6 +4,7 @@ import os
 import copy
 import logging
 from instance.config import LUNCH_CHANNEL
+import retry
 
 logger = logging.getLogger()
 
@@ -52,12 +53,14 @@ def sendMessageToChannel(channel, msg, token, text=None, ephemeral_user=None):
         data['user'] = ephemeral_user
     if text is not None:
         data['text'] = text
+    r = post_data_with_retry(url, data)
+    return r
+
+@retry.retry(delay = 0.5, tries=5, backoff=2, max_delay=5.0)
+def post_data_with_retry(url, data):
     logger.debug(f"Slack request: {url}, {data}")
-    try:
-        r = requests.post(url, data=data)
-        logger.debug(r.json())
-    except Exception as e:
-        logger.error(str(e))
+    r = requests.post(url=url, data=data)
+    logger.debug(str(r))
     return r
 
 def sendMessageToUser(user, msg, token, text=None):
