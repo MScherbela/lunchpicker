@@ -266,7 +266,8 @@ def castBotVoteForRestaurant(date=None, prevent_revote=True):
         weights = [r.weight for r in active_restaurants]
         r = random.choices(active_restaurants, weights, k=1)[0]
 
-    weight = 10.0 if (r.name == 'Pasta Day') else 0.1
+    #weight = 10.0 if (r.name == 'Pasta Day') else 0.1
+    weight = 0.1
     voteForRestaurant(r.id, None, date, weight)
     return r
 
