@@ -19,7 +19,6 @@ from models import *
 
 app = flask.Flask(__name__)
 app.config.from_pyfile('config.py')
-app.config.from_pyfile('instance/config.py')
 SLACK_BOT_TOKEN = app.config['SLACK_BOT_TOKEN']
 
 admin.init_app(app)

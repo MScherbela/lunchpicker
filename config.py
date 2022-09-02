@@ -1,6 +1,12 @@
+import os
+
 SQLALCHEMY_DATABASE_URI = 'sqlite:////data/lunch.db'
 FLASK_ADMIN_SWATCH = 'cerulean'
 SCHEDULER_API_ENABLED = False
 
-# These keys should be specified in the secret instance/config.py:
-# SECRET_KEY, SLACK_BOT_TOKEN, BASIC_AUTH_USERNAME, BASIC_AUTH_PASSWORD
+SECRET_KEY = os.environ['SECRET_KEY']
+SLACK_BOT_TOKEN = os.environ['SLACK_BOT_TOKEN']
+SLACK_REQUEST_TOKEN = os.environ['SLACK_REQUEST_TOKEN']
+BASIC_AUTH_USERNAME = os.environ['BASIC_AUTH_USERNAME']
+BASIC_AUTH_PASSWORD = os.environ['BASIC_AUTH_PASSWORD']
+LUNCH_CHANNEL = os.environ['LUNCH_CHANNEL']

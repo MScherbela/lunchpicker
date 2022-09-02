@@ -3,9 +3,9 @@ import json
 import os
 import copy
 import logging
-from instance.config import LUNCH_CHANNEL
 import retry
 
+LUNCH_CHANNEL = os.environ['LUNCH_CHANNEL']
 logger = logging.getLogger()
 
 with open('slack_lock.txt') as f:
