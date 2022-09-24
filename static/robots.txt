@@ -1,0 +1,3 @@
+# Disallow all webcrawlers (e.g. Googlebot)
+User-agent: *
+Disallow: /
