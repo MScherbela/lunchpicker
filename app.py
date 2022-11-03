@@ -120,7 +120,12 @@ def get_orderer():
 def addUserIfNotExists(user_data):
     user = User.query.filter_by(slack_id=user_data['id']).first()
     if user is None:
-        first, last = user_data['name'].split('.')
+        names = user_data['name'].split('.')
+        if len(names) == 2:
+            first, last = names
+        else:
+            first = names[0]
+            last = ""
         logger.info(f"Adding new user: {first} {last}, {user_data['id']}")
         user = User(first_name=first.title(), last_name=last.title(), slack_id=user_data['id'], active=True)
         db.session.add(user)
