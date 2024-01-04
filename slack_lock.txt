@@ -1,2 +1,1 @@
 # Put the word L O C K E D in this file (without spaces) to prevent the bot from sending slack messages
-LOCKED

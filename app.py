@@ -37,25 +37,25 @@ def castBotVoteTask():
         #sendRestaurantOptions('test')
 
 
-# @scheduler.task('cron', id='send_restaurant_options', minute=30, hour=9, day_of_week="mon,tue,wed,thu,fri")
-# def sendRestaurantOptionsTask():
-#     with app.app_context():
-#         castBotVoteForRestaurant(prevent_revote=True) # should already be decided; just in case
-#         sendRestaurantOptions()
+@scheduler.task('cron', id='send_restaurant_options', minute=30, hour=9, day_of_week="mon,tue,wed,thu,fri")
+def sendRestaurantOptionsTask():
+    with app.app_context():
+        castBotVoteForRestaurant(prevent_revote=True) # should already be decided; just in case
+        sendRestaurantOptions()
 
 
-# @scheduler.task('cron', id='send_lunch_options', minute=45, hour=10, day_of_week='mon,tue,wed,thu,fri')
-# def sendLunchOptionsTask():
-#     with app.app_context():
-#         selectRestaurant()
-#         sendLunchProposalToAll()
+@scheduler.task('cron', id='send_lunch_options', minute=45, hour=10, day_of_week='mon,tue,wed,thu,fri')
+def sendLunchOptionsTask():
+    with app.app_context():
+        selectRestaurant()
+        sendLunchProposalToAll()
 
 
-# @scheduler.task('cron', id='send_order_summary', minute=15, hour=11, day_of_week='mon,tue,wed,thu,fri')
-# def sendOrderSummaryTask():
-#     with app.app_context():
-#         sendOrderSummary()
-#         updateDishWeights()
+@scheduler.task('cron', id='send_order_summary', minute=15, hour=11, day_of_week='mon,tue,wed,thu,fri')
+def sendOrderSummaryTask():
+    with app.app_context():
+        sendOrderSummary()
+        updateDishWeights()
 
 
 # %% Getter Methods
