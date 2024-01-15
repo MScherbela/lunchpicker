@@ -474,6 +474,9 @@ def action_decline_dish(payload, user):
     setUserChoice(user.id, None)
     slack.sendLunchNoOrderConfirmation(user, SLACK_BOT_TOKEN)
 
+def action_decline_dish_channel(payload, user):
+    setUserChoice(user.id, None)
+    slack.sendLunchNoOrderConfirmationToChannel(user, SLACK_BOT_TOKEN)
 
 def action_cast_restaurant_upvote(payload, user):
     restaurant_id = int(payload['state']['values']['voting']['ignore_select_restaurant']['selected_option']["value"])
@@ -491,8 +494,12 @@ def action_cast_restaurant_downvote(payload, user):
     slack.sendVoteConfirmation(user, "-1", restaurant.name, SLACK_BOT_TOKEN)
 
 
-ACTION_CALLBACKS = dict(subscribe=action_subscribe, unsubscribe=action_unsubscribe, select_dish=action_select_dish,
-                        decline_dish=action_decline_dish, cast_restaurant_upvote=action_cast_restaurant_upvote,
+ACTION_CALLBACKS = dict(subscribe=action_subscribe, 
+                        unsubscribe=action_unsubscribe, 
+                        select_dish=action_select_dish,
+                        decline_dish=action_decline_dish, 
+                        decline_dish_channel=action_decline_dish_channel,
+                        cast_restaurant_upvote=action_cast_restaurant_upvote,
                         cast_restaurant_downvote=action_cast_restaurant_downvote)
 
 def savePayloadForDebugging(payload):

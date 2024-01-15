@@ -114,6 +114,11 @@ def sendLunchConfirmation(user, dish_name, token):
 
 def sendLunchNoOrderConfirmation(user, token):
     msg = copy.deepcopy(MESSAGE_TEMPLATES['lunch_no_order_confirmation'])
+    return sendMessageToUser(user, msg, token, text="Ok, I'll not order for you.")
+
+
+def sendLunchNoOrderConfirmationToChannel(user, token):
+    msg = copy.deepcopy(MESSAGE_TEMPLATES['lunch_no_order_confirmation'])
     return sendMessageToChannel(LUNCH_CHANNEL, msg, token, text="Ok, I'll not order for you.", ephemeral_user=user.slack_id)
 
 

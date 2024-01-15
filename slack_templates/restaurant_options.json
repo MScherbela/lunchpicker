@@ -69,7 +69,7 @@
 					},
 					"style": "danger",
 					"value": "button_unsubscribe",
-					"action_id": "decline_dish"
+					"action_id": "decline_dish_channel"
 				}
 			]
 		},
